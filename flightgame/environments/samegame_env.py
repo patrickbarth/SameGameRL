@@ -9,12 +9,15 @@ class SameGameEnv:
         self.num_rows = num_rows
         self.num_cols = num_cols
         self.game = GameLogic(num_colors=self.num_colors, num_rows=self.num_rows, num_cols=self.num_cols)
-        self.done = False
+        self.done = self.game.done()
         self.reset()
 
-    def reset(self, seed=42):
+    def reset(self, board : None | list[list[int]] = None, seed=42):
         self.game = GameLogic(num_colors=self.num_colors, num_rows=self.num_rows, num_cols=self.num_cols)
-        self.done = False
+        if board:
+            self.game.set_board(board)
+
+        self.done = self.game.done()
         return self.get_observation()
     
     def step(self, action: tuple[int, int]) -> tuple[np.ndarray, float, bool, dict]:
