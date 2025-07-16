@@ -7,7 +7,7 @@ import numpy as np
 from flightgame.game.game_params import NUM_COLS, NUM_ROWS, NUM_COLORS
 
 
-class GameLogic:
+class Game:
 
     def __init__(self, num_rows = NUM_ROWS, num_cols = NUM_COLS, num_colors = NUM_COLORS):  # , screen):
         # self.screen = screen

@@ -8,7 +8,7 @@ from torch import nn
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
 
-from game.game_logic import GameLogic
+from flightgame.game.game import Game
 from game.game_params import NUM_COLORS, NUM_ROWS, NUM_COLS
 
 # Define model
@@ -95,7 +95,7 @@ class DQNBot():
         self.decrease_epsilon()
 
     def train_game(self):
-        game = GameLogic()
+        game = Game()
         for i in range(ceil(NUM_COLS*NUM_ROWS/3)):
             board = deepcopy(game.trainable_game())
             move = self.play(game)
@@ -105,7 +105,7 @@ class DQNBot():
                 self.won += 1
                 break
 
-    def play(self, game: GameLogic) -> int:
+    def play(self, game: Game) -> int:
         # choose with probability epsilon a random move
         # balancing exploration and exploitation
         if random.random() < self.epsilon:
@@ -116,7 +116,7 @@ class DQNBot():
         return move
 
     # same as play but with very smallest epsilon
-    def play_test(self, game: GameLogic) -> int:
+    def play_test(self, game: Game) -> int:
         # choose with probability epsilon a random move
         # balancing exploration and exploitation
         if random.random() < self.epsilon_min:

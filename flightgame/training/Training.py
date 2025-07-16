@@ -13,12 +13,12 @@ from copy import copy, deepcopy
 from agents.DQN_base_bot import DQNBot_base
 from agents.DQN_bot import DQNBot
 from game.View import View
-from game.game_logic import GameLogic
+from flightgame.game.game import Game
 from game.game_params import NUM_COLORS, NUM_ROWS, NUM_COLS, SCREEN_WIDTH, SCREEN_HEIGHT
 
 
 def test_game(bot, visualize=False):
-    game = GameLogic()
+    game = Game()
     rounds = 0
     if visualize:
         screen, view = ini_visualization(game)
@@ -125,7 +125,7 @@ def increasing_gamma():
             print("Round " + str(i) + ", timing " + str(t1 - t0) + " " + str(
                 t2 - t1) + " Bot reached an average score of " + str(results[-1]))
         with torch.no_grad():
-            game = GameLogic()
+            game = Game()
             print(agent.model(torch.from_numpy(game.trainable_game()).float().unsqueeze(0)))
         # test_game(agent, True)
         print(agent.won-old_won)

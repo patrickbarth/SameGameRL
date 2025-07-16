@@ -4,7 +4,7 @@ import pygame
 import sys
 
 from game.View import View
-from game.game_logic import GameLogic  # Import the game logic from another file
+from flightgame.game.game import Game  # Import the game logic from another file
 from game.game_params import SCREEN_WIDTH, SCREEN_HEIGHT, NUM_ROWS, NUM_COLS, NUM_COLORS
 
 

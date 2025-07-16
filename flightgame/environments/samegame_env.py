@@ -1,6 +1,6 @@
 import numpy as np
 
-from flightgame.game.game_logic import GameLogic
+from flightgame.game.game import Game
 from flightgame.game.game_params import NUM_COLS, NUM_ROWS, NUM_COLORS
 
 class SameGameEnv:
@@ -8,12 +8,12 @@ class SameGameEnv:
         self.num_colors = num_colors
         self.num_rows = num_rows
         self.num_cols = num_cols
-        self.game = GameLogic(num_colors=self.num_colors, num_rows=self.num_rows, num_cols=self.num_cols)
+        self.game = Game(num_colors=self.num_colors, num_rows=self.num_rows, num_cols=self.num_cols)
         self.done = self.game.done()
         self.reset()
 
     def reset(self, board : None | list[list[int]] = None, seed=42):
-        self.game = GameLogic(num_colors=self.num_colors, num_rows=self.num_rows, num_cols=self.num_cols)
+        self.game = Game(num_colors=self.num_colors, num_rows=self.num_rows, num_cols=self.num_cols)
         if board:
             self.game.set_board(board)
 
