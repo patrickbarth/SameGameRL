@@ -12,12 +12,12 @@ class SameGameEnv:
         self.done = False
         self.reset()
 
-    def reset(self):
+    def reset(self, seed=42):
         self.game = GameLogic()
         self.done = False
         return self.get_observation()
     
-    def step(self, action: tuple[int, int]) -> tuple[list[list[int]], float, bool, dict]:
+    def step(self, action: tuple[int, int]) -> tuple[np.ndarray, float, bool, dict]:
         if self.done:
             raise RuntimeError("Episode done. Call reset()")
         valid = self.game.move(action)
@@ -26,10 +26,10 @@ class SameGameEnv:
         return self.get_observation(), reward, self.done, {}
     
     def compute_reward(self, valid) -> float:
-        return 1
+        return self.game.left
 
-    def get_observation(self) -> list[list[int]]:
-        return [[1]]
+    def get_observation(self) -> np.ndarray:
+        return self._trainable_game(self.game.get_board())
     
     def _trainable_game(self, board: list[list[int]]) -> np.ndarray:
         board_np = np.array(board)
@@ -54,10 +54,12 @@ class SameGameEnv:
         return np.array(layers)
         '''
 
-    def inverse_trainable_game(self, board):
+    '''
+
+    def _inverse_trainable_game(self, board: np.ndarray) -> list[list[int]]:
 
         # Initialize the board with all zeros
-        new_board = np.zeros((self.num_rows, self.num_cols), dtype=int)
+        new_board = [[0]*self.num_cols]*self.num_rows
 
         # Iterate over colors, rows, and columns
         for color in range(self.num_colors):
@@ -65,7 +67,7 @@ class SameGameEnv:
                 for col in range(self.num_cols):
                     # If the value in the layers array is 1, set the corresponding position on the board to the current color
                     if board[color, row, col] == 1:
-                        new_board[row, col] = color
+                        new_board[row][col] = color
 
         return new_board
 
@@ -81,7 +83,6 @@ class SameGameEnv:
         tile = (row, col)
         old_left = self.left
         new_left = self.left-1
-        # check which tiles will now belong to the current player
         new_neighbours = [tile]
         old_neighbours = [tile]
         color = board[tile[0]][tile[1]]
@@ -105,3 +106,4 @@ class SameGameEnv:
         reward = (old_left - new_left) / 10
 
         return reward
+        '''
