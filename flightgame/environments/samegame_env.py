@@ -5,10 +5,11 @@ from flightgame.game.game_params import NUM_COLS, NUM_ROWS, NUM_COLORS
 
 class SameGameEnv:
     def __init__(self, num_colors=NUM_COLORS, num_rows=NUM_ROWS, num_cols=NUM_COLS):
-        self.game = GameLogic()
         self.num_colors = num_colors
         self.num_rows = num_rows
         self.num_cols = num_cols
+        self.game = GameLogic()
+        self.done = False
         self.reset()
 
     def reset(self):
