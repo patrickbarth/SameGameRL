@@ -8,12 +8,12 @@ class SameGameEnv:
         self.num_colors = num_colors
         self.num_rows = num_rows
         self.num_cols = num_cols
-        self.game = GameLogic()
+        self.game = GameLogic(num_colors=self.num_colors, num_rows=self.num_rows, num_cols=self.num_cols)
         self.done = False
         self.reset()
 
     def reset(self, seed=42):
-        self.game = GameLogic()
+        self.game = GameLogic(num_colors=self.num_colors, num_rows=self.num_rows, num_cols=self.num_cols)
         self.done = False
         return self.get_observation()
     
@@ -26,7 +26,7 @@ class SameGameEnv:
         return self.get_observation(), reward, self.done, {}
     
     def compute_reward(self, valid) -> float:
-        return self.game.left
+        return float(self.game.left)
 
     def get_observation(self) -> np.ndarray:
         return self._trainable_game(self.game.get_board())

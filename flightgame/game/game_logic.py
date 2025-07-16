@@ -9,18 +9,21 @@ from flightgame.game.game_params import NUM_COLS, NUM_ROWS, NUM_COLORS
 
 class GameLogic:
 
-    def __init__(self):  # , screen):
+    def __init__(self, num_rows = NUM_ROWS, num_cols = NUM_COLS, num_colors = NUM_COLORS):  # , screen):
         # self.screen = screen
-        self.neighbours = self.initialize_neighbours(NUM_ROWS, NUM_COLS)
+        self.num_rows = num_rows
+        self.num_cols = num_cols
+        self.num_colors = num_colors
+        self.neighbours = self.initialize_neighbours(self.num_rows, self.num_cols)
         self.deterministic = False # for debugging
-        self.board = self.create_board([[-1 for _ in range(NUM_COLS)] for _ in range(NUM_ROWS)])
-        self.left = NUM_ROWS*NUM_COLS
-        self.cols_left = NUM_COLS
+        self.board = self.create_board([[-1 for _ in range(self.num_cols)] for _ in range(self.num_rows)])
+        self.left = self.num_rows*self.num_cols
+        self.cols_left = self.num_cols
 
     def create_board(self, board: list[list[int]]) -> list[list[int]]:
         for row in range(len(board)):
             for col in range(len(board[row])):
-                board[row][col] = random.randint(1, NUM_COLORS-1)
+                board[row][col] = random.randint(1, self.num_cols-1)
 
         if self.deterministic:
             board = [[1, 3, 3, 1, 3, 1, 2, 2], [3, 1, 1, 2, 1, 3, 1, 3], [2, 2, 1, 1, 3, 3, 2, 2], [3, 1, 1, 2, 3, 2, 3, 2], [3, 3, 2, 1, 1, 3, 3, 2], [3, 2, 3, 1, 2, 2, 1, 3], [3, 1, 3, 1, 2, 2, 2, 1], [2, 2, 3, 3, 2, 3, 1, 3]]
@@ -60,6 +63,8 @@ class GameLogic:
 
         self.sink()
         self.shrink()
+
+    '''
 
     def rl_move_normal(self, move):
         tile = self.movable(move)
@@ -171,39 +176,39 @@ class GameLogic:
         self.sink()
         self.shrink()
 
-        reward = 1/(2**((self.left*7)/(NUM_COLS*NUM_ROWS)))
+        reward = 1/(2**((self.left*7)/(self.num_cols*self.num_rows)))
 
         return self.trainable_game(), reward, self.done()
-
+    '''
 
     def movable(self, move):
-        x = floor(move/NUM_ROWS)
-        y = move%NUM_COLS
+        x = floor(move/self.num_rows)
+        y = move%self.num_cols
         return (x,y)
 
 
     def shrink(self):
         for col in range(self.cols_left-1):
-            while self.board[NUM_ROWS-1][col] == 0 and self.cols_left > col:
+            while self.board[self.num_rows-1][col] == 0 and self.cols_left > col:
                 for i in range(col, self.cols_left-1):
                     self.shift(i)
                 self.cols_left -= 1
 
 
     def shift(self, column):
-        for row in range(NUM_ROWS):
+        for row in range(self.num_rows):
             self.board[row][column] = self.board[row][column+1]
             self.board[row][column + 1] = 0
 
     def sink(self):
-        for col in range(0, NUM_COLS):
+        for col in range(0, self.num_cols):
             white = False
             color = False
             white_spaces = 0
             color_spaces = 0
             white_start = 0
 
-            for row in range(NUM_ROWS - 1, -1, -1):
+            for row in range(self.num_rows - 1, -1, -1):
 
                 # go up until you find the first white
                 if self.board[row][col] == 0 and not color:
@@ -227,8 +232,8 @@ class GameLogic:
 
     def get_singles(self) -> int:
         single_counter = 0
-        for row in range(NUM_ROWS):
-            for column in range(NUM_COLS):
+        for row in range(self.num_rows):
+            for column in range(self.num_cols):
                 found = False
                 for neighbour in self.neighbours[row][column]:
                     if self.board[neighbour[0]][neighbour[1]] == self.board[row][column]:
