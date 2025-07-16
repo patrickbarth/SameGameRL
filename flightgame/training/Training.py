@@ -10,11 +10,11 @@ import torch
 from matplotlib import style
 from copy import copy, deepcopy
 
-from Bots.DQN_base_bot import DQNBot_base
-from DQN_bot import DQNBot
-from Game.View import View
-from Game.game_logic import GameLogic
-from Game.game_params import NUM_COLORS, NUM_ROWS, NUM_COLS, SCREEN_WIDTH, SCREEN_HEIGHT
+from agents.DQN_base_bot import DQNBot_base
+from agents.DQN_bot import DQNBot
+from game.View import View
+from game.game_logic import GameLogic
+from game.game_params import NUM_COLORS, NUM_ROWS, NUM_COLS, SCREEN_WIDTH, SCREEN_HEIGHT
 
 
 def test_game(bot, visualize=False):

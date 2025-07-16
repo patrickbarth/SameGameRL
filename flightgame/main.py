@@ -3,9 +3,9 @@ import time
 import pygame
 import sys
 
-from Game.View import View
-from Game.game_logic import GameLogic  # Import the game logic from another file
-from Game.game_params import SCREEN_WIDTH, SCREEN_HEIGHT, NUM_ROWS, NUM_COLS, NUM_COLORS
+from game.View import View
+from game.game_logic import GameLogic  # Import the game logic from another file
+from game.game_params import SCREEN_WIDTH, SCREEN_HEIGHT, NUM_ROWS, NUM_COLS, NUM_COLORS
 
 
 
@@ -20,7 +20,7 @@ pygame.display.set_caption("Flight Game")
 
 
 # starting the game_logic
-game = GameLogic() # screen)
+game = gameLogic() # screen)
 
 view = View(game)
 
@@ -36,13 +36,13 @@ while running and not game.done():
             view.draw(screen, game.get_board())
             pygame.display.flip()
             print(game.get_singles())
-            # data = game.trainable_game()
-            # print("transformed data")
-            # prediction = model(tf.expand_dims(data, 0), training=False)
-            # print("made prediction")
-            # print(prediction)
-            # move = np.argmax(prediction)
-            # game.move(agent.play_test(game))
+            data = game.trainable_game()
+            print("transformed data")
+            prediction = model(tf.expand_dims(data, 0), training=False)
+            print("made prediction")
+            print(prediction)
+            move = np.argmax(prediction)
+            game.move(agent.play_test(game))
     """
     game.move(bot1.play(game))
     screen.fill((255, 255, 255))
@@ -63,15 +63,6 @@ while running and not game.done():
 
     screen.fill((255, 255, 255))
     view.draw(screen, game.get_board())
-    pygame.display.flip()
-
-
-running = True
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-    view.show_score(screen, game.score)
     pygame.display.flip()
 
 

@@ -8,8 +8,8 @@ from torch import nn
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
 
-from Game.game_logic import GameLogic
-from Game.game_params import NUM_COLORS, NUM_ROWS, NUM_COLS
+from game.game_logic import GameLogic
+from game.game_params import NUM_COLORS, NUM_ROWS, NUM_COLS
 
 # Define model
 class NeuralNetwork(nn.Module):
