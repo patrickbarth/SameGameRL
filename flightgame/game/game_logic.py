@@ -51,6 +51,9 @@ class GameLogic:
         # Set board and reset internal state
         self.board = board
         self.left = self.num_cols*self.num_rows - empty_cells
+
+        self.sink()
+        self.shrink()
         
         
 
@@ -62,10 +65,13 @@ class GameLogic:
 
     def move(self, tile: tuple[int, int]):
         old_left = self.left
-        new_neighbours = [tile]
-        old_neighbours = [tile]
+        new_neighbours = {tile}
+        old_neighbours = {tile}
         color = self.board[tile[0]][tile[1]]
         first = True
+
+        if color == 0:
+            return self.board
 
         # finding all the adjacent neighbours with the same color
         while first or len(old_neighbours) != len(new_neighbours):
@@ -73,7 +79,7 @@ class GameLogic:
                 old_neighbours = new_neighbours.copy()
             for neighbour in self.get_neighbours(old_neighbours):
                 if self.board[neighbour[0]][neighbour[1]] == color:
-                    new_neighbours.append(neighbour)
+                    new_neighbours.add(neighbour)
             if len(new_neighbours) == 1:
                 return
             first = False
@@ -85,6 +91,8 @@ class GameLogic:
 
         self.sink()
         self.shrink()
+
+        return self.board
 
 
     def movable(self, move):
@@ -162,7 +170,7 @@ class GameLogic:
         for i in range(block_size):
             self.board[start - i][column] = block[i]
 
-    def get_neighbours(self, tiles: list[tuple[int, int]]):
+    def get_neighbours(self, tiles: set[tuple[int, int]]):
         neighbours = []
         for tile in tiles:
             for neighbour in self.neighbours[tile[0]][tile[1]]:
