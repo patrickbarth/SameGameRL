@@ -4,7 +4,7 @@ import numpy as np
 class BaseAgent(ABC):
 
     @abstractmethod
-    def act(self, observation: np.ndarray) -> tuple[int, int]:
+    def act(self, observation: np.ndarray) -> int:
         pass
 
     @abstractmethod

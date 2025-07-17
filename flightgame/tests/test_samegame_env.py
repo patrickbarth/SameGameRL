@@ -44,7 +44,7 @@ def test_reset_resets_state():
 
 def test_step_returns_valid_output():
     env = SameGameEnv()
-    action = (0,0)
+    action = 0
 
     obs, reward, done, info = env.step(action)
 
@@ -58,12 +58,12 @@ def test_step_after_done_raises_error():
     env = SameGameEnv()
     env.done = True
     with pytest.raises(RuntimeError, match="Episode done"):
-        env.step((0, 0))
+        env.step(0)
 
 def test_reward_matches_left_count():
     env = SameGameEnv(num_colors=2, num_cols=10, num_rows=10)
     env.reset()
-    _, reward, _, _ = env.step((0,0))
+    _, reward, _, _ = env.step(0)
     assert reward == env.game.left
 
 def test_env_done_when_game_is_over():
@@ -82,7 +82,7 @@ def test_env_done_when_game_is_over():
     assert not env.done
     assert env.game.left == 2
 
-    _, reward, done, _ = env.step((env.num_rows-1, 0))
+    _, reward, done, _ = env.step((env.num_cols)*(env.num_rows-1))
 
     assert done
     assert env.game.left == 0
@@ -106,7 +106,7 @@ def test_step_on_custom_board():
     assert env.game.left == 12
     assert not env.done
 
-    obs, reward, done, _ = env.step((0, 0))
+    obs, reward, done, _ = env.step(0)
     assert reward == 10
     assert np.array_equal(obs, expected_obs)
     assert not done

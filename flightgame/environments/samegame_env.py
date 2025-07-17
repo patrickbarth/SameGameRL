@@ -20,10 +20,11 @@ class SameGameEnv:
         self.done = self.game.done()
         return self.get_observation()
     
-    def step(self, action: tuple[int, int]) -> tuple[np.ndarray, float, bool, dict]:
+    def step(self, action: int) -> tuple[np.ndarray, float, bool, dict]:
         if self.done:
             raise RuntimeError("Episode done. Call reset()")
-        valid = self.game.move(action)
+        row, col = divmod(action, self.num_cols)
+        valid = self.game.move((row, col))
         reward = self.compute_reward(valid)
         self.done = self.game.done()
         return self.get_observation(), reward, self.done, {}
