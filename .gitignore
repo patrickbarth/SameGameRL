@@ -1,5 +1,6 @@
 # ML models
 flightgame/models
+flightgame/agents/deprecated
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
