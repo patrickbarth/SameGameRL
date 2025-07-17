@@ -43,7 +43,7 @@ class NeuralNetwork(nn.Module):
         return logits
 
 
-class DQNBot(BaseAgent):
+class DqnAgent(BaseAgent):
 
     def __init__(
             self,
