@@ -1,5 +1,5 @@
 import pygame
-from Game.game_params import COLORS, NUM_COLS, TILE_SIZE
+from flightgame.game.game_params import COLORS, NUM_COLS, TILE_SIZE
 
 
 class Tile:

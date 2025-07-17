@@ -1,6 +1,6 @@
 import pygame
-from Game.Tile import Tile
-from Game.game_params import NUM_ROWS, NUM_COLS, NUM_COLORS, COLORS, TILE_SIZE, GAP, CONTROL_GAP, FIELD_CONTROL_MARGIN, \
+from game.Tile import Tile
+from game.game_params import NUM_ROWS, NUM_COLS, NUM_COLORS, COLORS, TILE_SIZE, GAP, CONTROL_GAP, FIELD_CONTROL_MARGIN, \
     SCREEN_HEIGHT, SCREEN_WIDTH
 
 
