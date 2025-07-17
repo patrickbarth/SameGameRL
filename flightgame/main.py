@@ -20,7 +20,7 @@ pygame.display.set_caption("Flight Game")
 
 
 # starting the game_logic
-game = gameLogic() # screen)
+game = Game() # screen)
 
 view = View(game)
 
@@ -36,6 +36,7 @@ while running and not game.done():
             view.draw(screen, game.get_board())
             pygame.display.flip()
             print(game.get_singles())
+            '''
             data = game.trainable_game()
             print("transformed data")
             prediction = model(tf.expand_dims(data, 0), training=False)
@@ -43,6 +44,7 @@ while running and not game.done():
             print(prediction)
             move = np.argmax(prediction)
             game.move(agent.play_test(game))
+            '''
     """
     game.move(bot1.play(game))
     screen.fill((255, 255, 255))

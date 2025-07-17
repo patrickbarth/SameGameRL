@@ -23,7 +23,7 @@ class Game:
     def create_board(self, board: list[list[int]]) -> list[list[int]]:
         for row in range(len(board)):
             for col in range(len(board[row])):
-                board[row][col] = random.randint(1, self.num_cols-1)
+                board[row][col] = random.randint(1, self.num_colors-1)
 
         if self.deterministic:
             board = [[1, 3, 3, 1, 3, 1, 2, 2], [3, 1, 1, 2, 1, 3, 1, 3], [2, 2, 1, 1, 3, 3, 2, 2], [3, 1, 1, 2, 3, 2, 3, 2], [3, 3, 2, 1, 1, 3, 3, 2], [3, 2, 3, 1, 2, 2, 1, 3], [3, 1, 3, 1, 2, 2, 2, 1], [2, 2, 3, 3, 2, 3, 1, 3]]
@@ -210,7 +210,7 @@ class Game:
         return neighbor_list
     
 
-    '''
+
     def trainable_game(self):
         layers = []
         for color in range(NUM_COLORS):
@@ -225,6 +225,8 @@ class Game:
                 layer.append(srow)
             layers.append(layer)
         return np.array(layers)
+    
+    '''
 
     def trainable_game_helper(self, board):
         layers = []
