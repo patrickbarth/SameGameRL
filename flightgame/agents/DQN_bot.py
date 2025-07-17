@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader
 from flightgame.agents.base_agent import BaseAgent
 from flightgame.game.game import Game
 from game.game_params import NUM_COLORS, NUM_ROWS, NUM_COLS
+from flightgame.agents.replay_buffer import ReplayBuffer
 
 # Define model
 class NeuralNetwork(nn.Module):
@@ -55,20 +56,20 @@ class DQNBot(BaseAgent):
             ):
 
 
-        device = (
+        self.device = (
             "cuda"
             if torch.cuda.is_available()
             # else "mps"
             # if torch.backends.mps.is_available()
             else "cpu"
         )
-        print(f"Using {device} device")
+        print(f"Using {self.device} device")
 
-        self.model = NeuralNetwork().to(device)
-        self.target_model = NeuralNetwork().to(device)
+        self.model = NeuralNetwork().to(self.device)
+        self.target_model = NeuralNetwork().to(self.device)
 
-        self.memory = []
-        self.memory_size = 2000
+        self.replay_buffer = ReplayBuffer(capacity=2000)
+        self.batch_size = 100
         self.won = 0
 
         # exploration
@@ -87,23 +88,98 @@ class DQNBot(BaseAgent):
         self.criterion = torch.nn.MSELoss()
         self.opt = torch.optim.Adam(self.model.parameters())
 
+
+    def act(self, observation: np.ndarray) -> int:
+        # choose with probability epsilon a random move
+        # balancing exploration and exploitation
+        if random.random() < self.epsilon:
+            move = random.randint(0, NUM_ROWS*NUM_COLS-1)
+        else:
+            obs_tensor = torch.tensor(observation, dtype=torch.float32).unsqueeze(0)
+            with torch.no_grad():
+                q_values = self.model(obs_tensor)
+            move = q_values.argmax().item()
+        return move
+    
+    def learn(self):
+        if len(self.replay_buffer) < self.batch_size:
+            return 
+        
+        states = self.replay_buffer.sample(self.batch_size)
+        obs, actions, rewards, next_obs, dones = zip(*states)
+
+        obs = torch.tensor(obs, dtype=torch.float32)
+        next_obs = torch.tensor(next_obs, dtype=torch.float32)
+        actions = torch.tensor(actions, dtype=torch.float32)
+        rewards = torch.tensor(rewards, dtype=torch.float32)
+        dones = torch.tensor(dones, dtype=torch.bool).unsqueeze(1)
+
+        pred_q_values = self.model(obs).gather(1, actions)
+
+        with torch.no_grad():
+            next_q_values = self.target_model(next_obs).max(1, keepdim=True).values
+            target_q_values = rewards + self.gamma * next_q_values * (~dones)
+
+        loss = self.criterion(pred_q_values, target_q_values)
+        self.opt.zero_grad()
+        loss.backward()
+        self.opt.step()
+
+    def decrease_epsilon(self):
+        if self.epsilon > self.epsilon_min:
+            self.epsilon *= self.epsilon_decay
+
+    def update_target_model(self):
+        target_model_state_dict = self.target_model.state_dict()
+        model_state_dict = self.model.state_dict()
+        for key in model_state_dict:
+            target_model_state_dict[key] = model_state_dict[key] * self.tau + target_model_state_dict[key] * (1 - self.tau)
+        self.target_model.load_state_dict(target_model_state_dict)
+
+    def save(self):
+        torch.save({
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': self.opt.state_dict(),
+            'target_model_state_dict': self.target_model.state_dict()
+        }, self.model_name + ".pth")
+
+    def load(self, load_target=False):
+        checkpoint = torch.load(self.model_name + '.pth')
+        self.model.load_state_dict(checkpoint['model_state_dict'])
+        self.opt.load_state_dict(checkpoint['optimizer_state_dict'])
+        if load_target:
+            self.target_model.load_state_dict(checkpoint['target_model_state_dict'])
+        else:
+            self.target_model.load_state_dict(checkpoint['model_state_dict'])
+
+        self.model.train()
+        self.target_model.eval()
+
+'''
     def reset_model(self):
-        device = (
+        self.device = (
             "cuda"
             if torch.cuda.is_available()
             # else "mps"
             # if torch.backends.mps.is_available()
             else "cpu"
         )
-        print(f"Using {device} device")
+        print(f"Using {self.device} device")
 
-        self.model = NeuralNetwork().to(device)
-        self.target_model = NeuralNetwork().to(device)
+        self.model = NeuralNetwork().to(self.device)
+        self.target_model = NeuralNetwork().to(self.device)
 
-        self.criterion = torch.nn.MSELoss()
-        self.opt = torch.optim.Adam(self.model.parameters(), lr=0.000001)
-        self.scheduler = StepLR(self.opt, step_size=10000, gamma=0.5)
+        self.criterion
+        self.opt
 
+        # self.criterion = torch.nn.MSELoss()
+        # self.opt = torch.optim.Adam(self.model.parameters(), lr=0.000001)
+        # self.scheduler = StepLR(self.opt, step_size=10000, gamma=0.5)
+'''
+
+
+
+'''
     def train_model(self, number_of_games):
         for i in range(number_of_games):
             self.train_game()
@@ -195,37 +271,7 @@ class DQNBot(BaseAgent):
         # self.scheduler.step()
         # print(self.scheduler.get_last_lr())
 
-    def decrease_epsilon(self):
-        if self.epsilon > self.epsilon_min:
-            self.epsilon *= self.epsilon_decay
 
-    def update_target_model(self):
-        target_model_state_dict = self.target_model.state_dict()
-        model_state_dict = self.model.state_dict()
-        for key in model_state_dict:
-            target_model_state_dict[key] = model_state_dict[key] * self.tau + target_model_state_dict[key] * (1 - self.tau)
-        self.target_model.load_state_dict(target_model_state_dict)
-
-    def save(self):
-        torch.save({
-            'model_state_dict': self.model.state_dict(),
-            'optimizer_state_dict': self.opt.state_dict(),
-            'target_model_state_dict': self.target_model.state_dict()
-        }, self.model_name + ".pth")
-
-    def load(self, load_target=False):
-        self.reset_model()
-
-        checkpoint = torch.load(self.model_name + '.pth')
-        self.model.load_state_dict(checkpoint['model_state_dict'])
-        self.opt.load_state_dict(checkpoint['optimizer_state_dict'])
-        if load_target:
-            self.target_model.load_state_dict(checkpoint['target_model_state_dict'])
-        else:
-            self.target_model.load_state_dict(checkpoint['model_state_dict'])
-
-        self.model.train()
-        self.target_model.eval()
 
 # agent = DQNBot()
 # agent.model_name = "TestModel"
@@ -234,3 +280,4 @@ class DQNBot(BaseAgent):
 # game.move(2)
 # print(agent.model(torch.from_numpy(game.trainable_game()).float().unsqueeze(0)))
 # print(agent.model(torch.from_numpy(np.array([game.trainable_game(), game.trainable_game()])).float()))
+'''
