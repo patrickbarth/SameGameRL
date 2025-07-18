@@ -10,8 +10,7 @@ import torch
 from matplotlib import style
 from copy import copy, deepcopy
 
-from flightgame.agents.deprecated.DQN_base_bot import DQNBot_base
-from flightgame.agents.deprecated.DQN_bot_old import DQNBot
+from flightgame.agents.dqn_agent import DqnAgent
 from game.View import View
 from flightgame.game.game import Game
 from game.game_params import NUM_COLORS, NUM_ROWS, NUM_COLS, SCREEN_WIDTH, SCREEN_HEIGHT
@@ -96,7 +95,7 @@ def increasing_gamma():
     style.use('fivethirtyeight')
     fig, ax = plt.subplots()
 
-    agent = DQNBot()
+    agent = DqnAgent()
     agent.model_name = "DQN_Model_single_base_" + str(NUM_COLORS) + "_" + str(NUM_ROWS) + "_" + str(NUM_COLS)
     agent.create_model()
     # agent.save()

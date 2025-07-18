@@ -30,7 +30,9 @@ class SameGameEnv:
         return self.get_observation(), reward, self.done, {}
     
     def compute_reward(self, valid) -> float:
-        return float(self.game.left)
+        if self.game.left == 0:
+            return float(5)
+        return float(1/self.game.left)
 
     def get_observation(self) -> np.ndarray:
         return self._trainable_game(self.game.get_board())

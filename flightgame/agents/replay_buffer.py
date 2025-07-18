@@ -16,7 +16,7 @@ class ReplayBuffer:
     ):
         self.buffer.append((state, action, reward, next_state, done))
 
-    def sample(self, batch_size: int):
+    def sample(self, batch_size: int) -> tuple[np.ndarray, tuple[int, ...], np.ndarray, np.ndarray, np.ndarray]:
         batch = random.sample(self.buffer, batch_size)
         states, actions, rewards, next_states, dones = zip(*batch)
         return (

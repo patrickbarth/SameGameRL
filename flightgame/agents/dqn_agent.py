@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 
 from flightgame.agents.base_agent import BaseAgent
 from flightgame.game.game import Game
-from game.game_params import NUM_COLORS, NUM_ROWS, NUM_COLS
+from flightgame.game.game_params import NUM_COLORS, NUM_ROWS, NUM_COLS
 from flightgame.agents.replay_buffer import ReplayBuffer
 
 # Define model
@@ -51,6 +51,7 @@ class DqnAgent(BaseAgent):
             initial_epsilon: float, # determines how random the bot chooses it's actions
             epsilon_decay: float, # how quickly the bot moves from exploration to exploitation
             final_epsilon: float, # minimum rate of exploration
+            batch_size: int = 128, # number of game moves used for each training episode
             gamma: float = 0.95, # how much future expected rewards count towards an action
             tau: float = 0.5 # how quickly the target model adapts to the model
             ):
@@ -59,8 +60,8 @@ class DqnAgent(BaseAgent):
         self.device = (
             "cuda"
             if torch.cuda.is_available()
-            # else "mps"
-            # if torch.backends.mps.is_available()
+            else "mps"
+            if torch.backends.mps.is_available()
             else "cpu"
         )
         print(f"Using {self.device} device")
@@ -69,7 +70,7 @@ class DqnAgent(BaseAgent):
         self.target_model = NeuralNetwork().to(self.device)
 
         self.replay_buffer = ReplayBuffer(capacity=2000)
-        self.batch_size = 100
+        self.batch_size = batch_size
         self.won = 0
 
         # exploration
@@ -95,24 +96,27 @@ class DqnAgent(BaseAgent):
         if random.random() < self.epsilon:
             move = random.randint(0, NUM_ROWS*NUM_COLS-1)
         else:
-            obs_tensor = torch.tensor(observation, dtype=torch.float32).unsqueeze(0)
+            obs_tensor = torch.tensor(observation, dtype=torch.float32).unsqueeze(0).to(self.device)
             with torch.no_grad():
                 q_values = self.model(obs_tensor)
             move = q_values.argmax().item()
         return move
+    
+    def remember(self, obs: np.ndarray, action: int, reward: float, next_obs: np.ndarray, done: bool):
+        self.replay_buffer.add(obs, action, reward, next_obs, done)
     
     def learn(self):
         if len(self.replay_buffer) < self.batch_size:
             return 
         
         states = self.replay_buffer.sample(self.batch_size)
-        obs, actions, rewards, next_obs, dones = zip(*states)
+        obs, actions, rewards, next_obs, dones = states
 
-        obs = torch.tensor(obs, dtype=torch.float32)
-        next_obs = torch.tensor(next_obs, dtype=torch.float32)
-        actions = torch.tensor(actions, dtype=torch.float32)
-        rewards = torch.tensor(rewards, dtype=torch.float32)
-        dones = torch.tensor(dones, dtype=torch.bool).unsqueeze(1)
+        obs = torch.tensor(obs, dtype=torch.float32).to(self.device)
+        next_obs = torch.tensor(next_obs, dtype=torch.float32).to(self.device)
+        actions = torch.tensor(actions, dtype=torch.int64).unsqueeze(1).to(self.device)
+        rewards = torch.tensor(rewards, dtype=torch.float32).to(self.device)
+        dones = torch.tensor(dones, dtype=torch.bool).unsqueeze(1).to(self.device)
 
         pred_q_values = self.model(obs).gather(1, actions)
 
@@ -127,7 +131,7 @@ class DqnAgent(BaseAgent):
 
     def decrease_epsilon(self):
         if self.epsilon > self.epsilon_min:
-            self.epsilon *= self.epsilon_decay
+            self.epsilon -= self.epsilon_decay
 
     def update_target_model(self):
         target_model_state_dict = self.target_model.state_dict()
