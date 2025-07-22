@@ -9,33 +9,48 @@ from flightgame.game.game_params import NUM_COLS, NUM_ROWS, NUM_COLORS
 
 class Game:
 
-    def __init__(self, num_rows = NUM_ROWS, num_cols = NUM_COLS, num_colors = NUM_COLORS):  # , screen):
+    def __init__(
+        self, num_rows=NUM_ROWS, num_cols=NUM_COLS, num_colors=NUM_COLORS
+    ):  # , screen):
         # self.screen = screen
         self.num_rows = num_rows
         self.num_cols = num_cols
         self.num_colors = num_colors
         self.neighbours = self.initialize_neighbours(self.num_rows, self.num_cols)
-        self.deterministic = False # for debugging
-        self.board = self.create_board([[-1 for _ in range(self.num_cols)] for _ in range(self.num_rows)])
-        self.left = self.num_rows*self.num_cols
+        self.deterministic = False  # for debugging
+        self.board = self.create_board(
+            [[-1 for _ in range(self.num_cols)] for _ in range(self.num_rows)]
+        )
+        self.left = self.num_rows * self.num_cols
         self.cols_left = self.num_cols
 
     def create_board(self, board: list[list[int]]) -> list[list[int]]:
         for row in range(len(board)):
             for col in range(len(board[row])):
-                board[row][col] = random.randint(1, self.num_colors-1)
+                board[row][col] = random.randint(1, self.num_colors - 1)
 
         if self.deterministic:
-            board = [[1, 3, 3, 1, 3, 1, 2, 2], [3, 1, 1, 2, 1, 3, 1, 3], [2, 2, 1, 1, 3, 3, 2, 2], [3, 1, 1, 2, 3, 2, 3, 2], [3, 3, 2, 1, 1, 3, 3, 2], [3, 2, 3, 1, 2, 2, 1, 3], [3, 1, 3, 1, 2, 2, 2, 1], [2, 2, 3, 3, 2, 3, 1, 3]]
+            board = [
+                [1, 3, 3, 1, 3, 1, 2, 2],
+                [3, 1, 1, 2, 1, 3, 1, 3],
+                [2, 2, 1, 1, 3, 3, 2, 2],
+                [3, 1, 1, 2, 3, 2, 3, 2],
+                [3, 3, 2, 1, 1, 3, 3, 2],
+                [3, 2, 3, 1, 2, 2, 1, 3],
+                [3, 1, 3, 1, 2, 2, 2, 1],
+                [2, 2, 3, 3, 2, 3, 1, 3],
+            ]
         return board
 
     def get_board(self) -> list[list[int]]:
         return self.board
-    
+
     def set_board(self, board: list[list[int]]):
         # Check for valid dimensions
         if len(board) != self.num_rows:
-            raise ValueError(f"Board row count {len(board)} does not match expected {self.num_rows}")
+            raise ValueError(
+                f"Board row count {len(board)} does not match expected {self.num_rows}"
+            )
         if any(len(row) != self.num_cols for row in board):
             raise ValueError("All board rows must match expected number of columns.")
 
@@ -46,16 +61,16 @@ class Game:
                 if val == 0:
                     empty_cells += 1
                 if not (0 <= val < self.num_colors):
-                    raise ValueError(f"Invalid color value {val}, must be in range 0 to {self.num_colors - 1}")
+                    raise ValueError(
+                        f"Invalid color value {val}, must be in range 0 to {self.num_colors - 1}"
+                    )
 
         # Set board and reset internal state
         self.board = board
-        self.left = self.num_cols*self.num_rows - empty_cells
+        self.left = self.num_cols * self.num_rows - empty_cells
 
         self.sink()
         self.shrink()
-        
-        
 
     def get_nbhd_colors(self, row: int, col: int, board: list[list[int]]) -> list[int]:
         colors = []
@@ -94,24 +109,21 @@ class Game:
 
         return self.board
 
-
     def movable(self, move):
-        x = floor(move/self.num_rows)
-        y = move%self.num_cols
-        return (x,y)
-
+        x = floor(move / self.num_rows)
+        y = move % self.num_cols
+        return (x, y)
 
     def shrink(self):
-        for col in range(self.cols_left-1):
-            while self.board[self.num_rows-1][col] == 0 and self.cols_left > col:
-                for i in range(col, self.cols_left-1):
+        for col in range(self.cols_left - 1):
+            while self.board[self.num_rows - 1][col] == 0 and self.cols_left > col:
+                for i in range(col, self.cols_left - 1):
                     self.shift(i)
                 self.cols_left -= 1
 
-
     def shift(self, column):
         for row in range(self.num_rows):
-            self.board[row][column] = self.board[row][column+1]
+            self.board[row][column] = self.board[row][column + 1]
             self.board[row][column + 1] = 0
 
     def sink(self):
@@ -140,7 +152,7 @@ class Game:
                 if (color and row == 0) or (self.board[row][col] == 0 and color):
                     color = False
                     self.move_block(col, white_start, white_spaces, color_spaces)
-                    white_start = white_start-color_spaces
+                    white_start = white_start - color_spaces
                     white_spaces += 1
                     color_spaces = 0
 
@@ -150,7 +162,10 @@ class Game:
             for column in range(self.num_cols):
                 found = False
                 for neighbour in self.neighbours[row][column]:
-                    if self.board[neighbour[0]][neighbour[1]] == self.board[row][column]:
+                    if (
+                        self.board[neighbour[0]][neighbour[1]]
+                        == self.board[row][column]
+                    ):
                         found = True
                 if not found:
                     single_counter += 1
@@ -161,10 +176,10 @@ class Game:
 
         # get the block that needs to be moved and color them white
         for i in range(block_size):
-            block.append(self.board[start-distance-i][column])
+            block.append(self.board[start - distance - i][column])
 
         for i in range(block_size):
-            self.board[start-distance-i][column] = 0
+            self.board[start - distance - i][column] = 0
 
         # color the old position all white
         for i in range(block_size):
@@ -208,8 +223,6 @@ class Game:
 
             neighbor_list.append(row_neighbors)
         return neighbor_list
-    
-
 
     def trainable_game(self):
         layers = []
@@ -225,8 +238,8 @@ class Game:
                 layer.append(srow)
             layers.append(layer)
         return np.array(layers)
-    
-    '''
+
+    """
 
     def trainable_game_helper(self, board):
         layers = []
@@ -294,11 +307,9 @@ class Game:
         reward = (old_left - new_left) / 10
 
         return reward
-    '''
-    
+    """
 
-
-    '''
+    """
 
     def rl_move_normal(self, move):
         tile = self.movable(move)
@@ -413,8 +424,4 @@ class Game:
         reward = 1/(2**((self.left*7)/(self.num_cols*self.num_rows)))
 
         return self.trainable_game(), reward, self.done()
-    '''
-
-
-
-
+    """
