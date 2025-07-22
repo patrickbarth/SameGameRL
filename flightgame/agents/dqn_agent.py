@@ -46,23 +46,20 @@ class NeuralNetwork(nn.Module):
 class DqnAgent(BaseAgent):
 
     def __init__(
-            self,
-            learning_rate: float,
-            initial_epsilon: float, # determines how random the bot chooses it's actions
-            epsilon_decay: float, # how quickly the bot moves from exploration to exploitation
-            final_epsilon: float, # minimum rate of exploration
-            batch_size: int = 128, # number of game moves used for each training episode
-            gamma: float = 0.95, # how much future expected rewards count towards an action
-            tau: float = 0.5 # how quickly the target model adapts to the model
-            ):
-
+        self,
+        learning_rate: float,
+        initial_epsilon: float,  # determines how random the bot chooses it's actions
+        epsilon_decay: float,  # how quickly the bot moves from exploration to exploitation
+        final_epsilon: float,  # minimum rate of exploration
+        batch_size: int = 128,  # number of game moves used for each training episode
+        gamma: float = 0.95,  # how much future expected rewards count towards an action
+        tau: float = 0.5,  # how quickly the target model adapts to the model
+    ):
 
         self.device = (
             "cuda"
             if torch.cuda.is_available()
-            else "mps"
-            if torch.backends.mps.is_available()
-            else "cpu"
+            else "mps" if torch.backends.mps.is_available() else "cpu"
         )
         print(f"Using {self.device} device")
 
@@ -85,49 +82,79 @@ class DqnAgent(BaseAgent):
         self.target_updated = 0
         self.model_name = "Bot"
         self.tau = tau
+        self.learning_rate = learning_rate
 
         self.criterion = torch.nn.MSELoss()
-        self.opt = torch.optim.Adam(self.model.parameters())
-
+        self.opt = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
     def act(self, observation: np.ndarray) -> int:
         # choose with probability epsilon a random move
         # balancing exploration and exploitation
         if random.random() < self.epsilon:
-            move = random.randint(0, NUM_ROWS*NUM_COLS-1)
+            move = random.randint(0, NUM_ROWS * NUM_COLS - 1)
         else:
-            obs_tensor = torch.tensor(observation, dtype=torch.float32).unsqueeze(0).to(self.device)
+            obs_tensor = (
+                torch.tensor(observation, dtype=torch.float32)
+                .unsqueeze(0)
+                .to(self.device)
+            )
             with torch.no_grad():
                 q_values = self.model(obs_tensor)
             move = q_values.argmax().item()
         return move
-    
-    def remember(self, obs: np.ndarray, action: int, reward: float, next_obs: np.ndarray, done: bool):
+
+    def act_eval(self, observation: np.ndarray) -> tuple[int, np.ndarray]:
+        # choose with probability epsilon a random move
+        # balancing exploration and exploitation
+        if random.random() < self.epsilon:
+            move = random.randint(0, NUM_ROWS * NUM_COLS - 1)
+        else:
+            obs_tensor = (
+                torch.tensor(observation, dtype=torch.float32)
+                .unsqueeze(0)
+                .to(self.device)
+            )
+            with torch.no_grad():
+                q_values = self.model(obs_tensor)
+            move = q_values.argmax().item()
+        return move, q_values
+
+    def remember(
+        self,
+        obs: np.ndarray,
+        action: int,
+        reward: float,
+        next_obs: np.ndarray,
+        done: bool,
+    ):
         self.replay_buffer.add(obs, action, reward, next_obs, done)
-    
-    def learn(self):
+
+    def learn(self) -> float:
         if len(self.replay_buffer) < self.batch_size:
-            return 
-        
+            return 0
+
         states = self.replay_buffer.sample(self.batch_size)
         obs, actions, rewards, next_obs, dones = states
 
         obs = torch.tensor(obs, dtype=torch.float32).to(self.device)
         next_obs = torch.tensor(next_obs, dtype=torch.float32).to(self.device)
         actions = torch.tensor(actions, dtype=torch.int64).unsqueeze(1).to(self.device)
-        rewards = torch.tensor(rewards, dtype=torch.float32).to(self.device)
+        rewards = (
+            torch.tensor(rewards, dtype=torch.float32).unsqueeze(1).to(self.device)
+        )
         dones = torch.tensor(dones, dtype=torch.bool).unsqueeze(1).to(self.device)
 
         pred_q_values = self.model(obs).gather(1, actions)
 
         with torch.no_grad():
-            next_q_values = self.target_model(next_obs).max(1, keepdim=True).values
+            next_q_values = self.target_model(next_obs).max(1).values.unsqueeze(1)
             target_q_values = rewards + self.gamma * next_q_values * (~dones)
 
         loss = self.criterion(pred_q_values, target_q_values)
         self.opt.zero_grad()
         loss.backward()
         self.opt.step()
+        return loss
 
     def decrease_epsilon(self):
         if self.epsilon > self.epsilon_min:
@@ -137,29 +164,35 @@ class DqnAgent(BaseAgent):
         target_model_state_dict = self.target_model.state_dict()
         model_state_dict = self.model.state_dict()
         for key in model_state_dict:
-            target_model_state_dict[key] = model_state_dict[key] * self.tau + target_model_state_dict[key] * (1 - self.tau)
+            target_model_state_dict[key] = model_state_dict[
+                key
+            ] * self.tau + target_model_state_dict[key] * (1 - self.tau)
         self.target_model.load_state_dict(target_model_state_dict)
 
     def save(self):
-        torch.save({
-            'model_state_dict': self.model.state_dict(),
-            'optimizer_state_dict': self.opt.state_dict(),
-            'target_model_state_dict': self.target_model.state_dict()
-        }, self.model_name + ".pth")
+        torch.save(
+            {
+                "model_state_dict": self.model.state_dict(),
+                "optimizer_state_dict": self.opt.state_dict(),
+                "target_model_state_dict": self.target_model.state_dict(),
+            },
+            self.model_name + ".pth",
+        )
 
     def load(self, load_target=False):
-        checkpoint = torch.load(self.model_name + '.pth')
-        self.model.load_state_dict(checkpoint['model_state_dict'])
-        self.opt.load_state_dict(checkpoint['optimizer_state_dict'])
+        checkpoint = torch.load(self.model_name + ".pth")
+        self.model.load_state_dict(checkpoint["model_state_dict"])
+        self.opt.load_state_dict(checkpoint["optimizer_state_dict"])
         if load_target:
-            self.target_model.load_state_dict(checkpoint['target_model_state_dict'])
+            self.target_model.load_state_dict(checkpoint["target_model_state_dict"])
         else:
-            self.target_model.load_state_dict(checkpoint['model_state_dict'])
+            self.target_model.load_state_dict(checkpoint["model_state_dict"])
 
         self.model.train()
         self.target_model.eval()
 
-'''
+
+"""
     def reset_model(self):
         self.device = (
             "cuda"
@@ -179,11 +212,10 @@ class DqnAgent(BaseAgent):
         # self.criterion = torch.nn.MSELoss()
         # self.opt = torch.optim.Adam(self.model.parameters(), lr=0.000001)
         # self.scheduler = StepLR(self.opt, step_size=10000, gamma=0.5)
-'''
+"""
 
 
-
-'''
+"""
     def train_model(self, number_of_games):
         for i in range(number_of_games):
             self.train_game()
@@ -284,4 +316,4 @@ class DqnAgent(BaseAgent):
 # game.move(2)
 # print(agent.model(torch.from_numpy(game.trainable_game()).float().unsqueeze(0)))
 # print(agent.model(torch.from_numpy(np.array([game.trainable_game(), game.trainable_game()])).float()))
-'''
+"""
