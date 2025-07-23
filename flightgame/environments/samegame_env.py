@@ -1,50 +1,92 @@
+from copy import deepcopy
 import numpy as np
 
 from flightgame.game.game import Game
 from flightgame.game.game_params import NUM_COLS, NUM_ROWS, NUM_COLORS
+
 
 class SameGameEnv:
     def __init__(self, num_colors=NUM_COLORS, num_rows=NUM_ROWS, num_cols=NUM_COLS):
         self.num_colors = num_colors
         self.num_rows = num_rows
         self.num_cols = num_cols
-        self.game = Game(num_colors=self.num_colors, num_rows=self.num_rows, num_cols=self.num_cols)
+        self.game = Game(
+            num_colors=self.num_colors, num_rows=self.num_rows, num_cols=self.num_cols
+        )
         self.done = self.game.done()
         self.reset()
 
-    def reset(self, board : None | list[list[int]] = None, seed=42):
-        self.game = Game(num_colors=self.num_colors, num_rows=self.num_rows, num_cols=self.num_cols)
+    def reset(self, board: None | list[list[int]] = None, seed=42):
+        self.game = Game(
+            num_colors=self.num_colors, num_rows=self.num_rows, num_cols=self.num_cols
+        )
         if board:
             self.game.set_board(board)
 
         self.done = self.game.done()
         return self.get_observation()
-    
+
     def step(self, action: int) -> tuple[np.ndarray, float, bool, dict]:
         if self.done:
             raise RuntimeError("Episode done. Call reset()")
-        row, col = divmod(action, self.num_cols)
-        valid = self.game.move((row, col))
-        reward = self.compute_reward(valid)
+        row, col = self._to_2d(action)
+        prev_left = self.game.left
+        prev_singles = self.game.get_singles()
+        self.game.move((row, col))
+        cur_left = self.game.left
+        cur_singles = self.game.get_singles()
+        reward = self.compute_reward(
+            prev_left, cur_left, prev_singles, cur_singles, (row, col)
+        )
         self.done = self.game.done()
         return self.get_observation(), reward, self.done, {}
-    
-    def compute_reward(self, valid) -> float:
+
+    def compute_reward(
+        self, prev_left, cur_left, prev_singles, cur_singles, action
+    ) -> float:
         if self.game.left == 0:
-            return float(5)
-        return float(1/self.game.left)
+            return float(1)
+        if prev_left == cur_left:
+            return -0.3
+
+        single = prev_singles - cur_singles
+        removed = prev_left - cur_left
+        # return removed / prev_left
+
+        return single * (1 / prev_left) + removed * (
+            1 / (self.num_cols * self.num_rows - prev_left + 1)
+        )
 
     def get_observation(self) -> np.ndarray:
         return self._trainable_game(self.game.get_board())
-    
+
     def _trainable_game(self, board: list[list[int]]) -> np.ndarray:
         board_np = np.array(board)
-        obs = np.zeros((self.num_colors, self.num_rows, self.num_cols), dtype=np.float32)
+        obs = np.zeros(
+            (self.num_colors, self.num_rows, self.num_cols), dtype=np.float32
+        )
         for color in range(self.num_colors):
-            obs[color] = (board_np == color)
+            obs[color] = board_np == color
         return obs
-    
-        '''
+
+    def _reverse_trainable_game(self, board: np.ndarray) -> list[list[int]]:
+        # Initialize the board with all zeros
+        new_board = [[0] * self.num_cols] * self.num_rows
+
+        # Iterate over colors, rows, and columns
+        for color in range(self.num_colors):
+            for row in range(self.num_rows):
+                for col in range(self.num_cols):
+                    # If the value in the layers array is 1, set the corresponding position on the board to the current color
+                    if board[color, row, col] == 1:
+                        new_board[row][col] = color
+
+        return new_board
+
+    def _to_2d(self, action):
+        return divmod(action, self.num_cols)
+
+        """
         layers = []
         for color in range(NUM_COLORS):
             layer = []
@@ -58,24 +100,9 @@ class SameGameEnv:
                 layer.append(srow)
             layers.append(layer)
         return np.array(layers)
-        '''
+        """
 
-    '''
-
-    def _inverse_trainable_game(self, board: np.ndarray) -> list[list[int]]:
-
-        # Initialize the board with all zeros
-        new_board = [[0]*self.num_cols]*self.num_rows
-
-        # Iterate over colors, rows, and columns
-        for color in range(self.num_colors):
-            for row in range(self.num_rows):
-                for col in range(self.num_cols):
-                    # If the value in the layers array is 1, set the corresponding position on the board to the current color
-                    if board[color, row, col] == 1:
-                        new_board[row][col] = color
-
-        return new_board
+    """
 
     def reward_all(self, board):
         board = self.inverse_trainable_game(board)
@@ -112,4 +139,4 @@ class SameGameEnv:
         reward = (old_left - new_left) / 10
 
         return reward
-        '''
+        """
