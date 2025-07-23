@@ -13,7 +13,29 @@ from flightgame.game.game import Game
 from flightgame.game.game_params import NUM_COLORS, NUM_ROWS, NUM_COLS
 from flightgame.agents.replay_buffer import ReplayBuffer
 
+
 # Define model
+class NeuralNetwork(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.flatten = nn.Flatten()
+        self.linear_relu_stack = nn.Sequential(
+            nn.Linear((NUM_ROWS) * (NUM_COLS) * NUM_COLORS, 1024),
+            nn.ReLU(),
+            nn.Linear(1024, 512),
+            nn.ReLU(),
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Linear(256, NUM_ROWS * NUM_COLS),
+        )
+
+    def forward(self, x):
+        x = self.flatten(x)
+        logits = self.linear_relu_stack(x)
+        return logits
+
+
+"""
 class NeuralNetwork(nn.Module):
     def __init__(self):
         super().__init__()
@@ -41,6 +63,7 @@ class NeuralNetwork(nn.Module):
         x = self.flatten(x)
         logits = self.linear_relu_stack(x)
         return logits
+"""
 
 
 class DqnAgent(BaseAgent):
@@ -80,7 +103,7 @@ class DqnAgent(BaseAgent):
         self.gamma = gamma
         self.target_update_interval = 200
         self.target_updated = 0
-        self.model_name = "Bot"
+        self.model_name = "LinearBot"
         self.tau = tau
         self.learning_rate = learning_rate
 
@@ -176,11 +199,11 @@ class DqnAgent(BaseAgent):
                 "optimizer_state_dict": self.opt.state_dict(),
                 "target_model_state_dict": self.target_model.state_dict(),
             },
-            self.model_name + ".pth",
+            "flightgame/models/" + self.model_name + ".pth",
         )
 
     def load(self, load_target=False):
-        checkpoint = torch.load(self.model_name + ".pth")
+        checkpoint = torch.load("flightgame/models/" + self.model_name + ".pth")
         self.model.load_state_dict(checkpoint["model_state_dict"])
         self.opt.load_state_dict(checkpoint["optimizer_state_dict"])
         if load_target:
