@@ -39,7 +39,7 @@ def play_eval_game(agent: DqnAgent, visualize=False, waiting_time=50):
             board[clicked_tile[0]][clicked_tile[1]] = 6
             view.draw_text(screen, board, values.tolist())
             pygame.display.flip()
-            pygame.time.wait(50)
+            pygame.time.wait(waiting_time)
         obs, reward, done, _ = env.step(move)
         print(reward)
         rounds += 1
