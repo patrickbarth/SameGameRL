@@ -1,9 +1,9 @@
 [project]
-name = "flightgame"
+name = "samegamerl"
 version = "0.1.0"
 description = ""
 authors = [
-    {name = "patrickbarth",email = "patrick-barth-2012@gmx.de"}
+    {name = "patrickbarth",email = "20340112+patrickbarth@users.noreply.github.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.13"
@@ -27,5 +27,5 @@ addopts = [
 ]
 
 [tool.poetry]
-name = "flightgame"
-packages = [{ include = "flightgame" }]
+name = "samegamerl"
+packages = [{ include = "samegamerl" }]
