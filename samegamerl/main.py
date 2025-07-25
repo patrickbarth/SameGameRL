@@ -34,32 +34,6 @@ while running and not game.done():
             view.draw(screen, game.get_board())
             pygame.display.flip()
             print(game.get_singles())
-            """
-            data = game.trainable_game()
-            print("transformed data")
-            prediction = model(tf.expand_dims(data, 0), training=False)
-            print("made prediction")
-            print(prediction)
-            move = np.argmax(prediction)
-            game.move(agent.play_test(game))
-            """
-    """
-    game.move(bot1.play(game))
-    screen.fill((255, 255, 255))
-    view.draw(screen, game.get_board())
-    pygame.display.flip()
-    game.move(bot2.play(game))
-    
-    screen.fill((255, 255, 255))
-    view.draw(screen, game.get_board())
-    pygame.display.flip()
-
-    print("rendered")
-    pygame.time.wait(5000)
-    print("waited")
-    game.move([10, 1])
-    pygame.display.flip()
-    """
 
     screen.fill((255, 255, 255))
     view.draw(screen, game.get_board())
