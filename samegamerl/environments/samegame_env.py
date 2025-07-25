@@ -31,10 +31,10 @@ class SameGameEnv:
             raise RuntimeError("Episode done. Call reset()")
         row, col = self._to_2d(action)
         prev_left = self.game.left
-        prev_singles = 0  # self.game.get_singles()
+        prev_singles = self.game.get_singles()
         self.game.move((row, col))
         cur_left = self.game.left
-        cur_singles = 0  # self.game.get_singles()
+        cur_singles = self.game.get_singles()
         reward = self.compute_reward(
             prev_left, cur_left, prev_singles, cur_singles, (row, col)
         )
@@ -53,7 +53,8 @@ class SameGameEnv:
         removed = prev_left - cur_left
         total = self.num_rows * self.num_cols
         # return removed / prev_left
-        return removed / 10
+        # return removed / 10
+        return single / prev_left
         # return single * ((total - prev_left) / total)
 
     def get_observation(self) -> np.ndarray:
