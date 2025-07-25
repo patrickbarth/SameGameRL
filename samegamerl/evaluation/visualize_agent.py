@@ -30,8 +30,8 @@ def play_eval_game(agent: DqnAgent, visualize=False, waiting_time=50):
     cur_epsilon = agent.epsilon
     agent.epsilon = 0
 
-    while (not done) and rounds < ceil(NUM_COLS * NUM_ROWS / 5):
-        move, values = agent.act_eval(obs)
+    while (not done) and rounds < ceil(NUM_COLS * NUM_ROWS / 3):
+        move, values = agent.act_visualize(obs)
         if visualize:
             screen.fill((255, 255, 255))
             board = deepcopy(env.game.get_board())

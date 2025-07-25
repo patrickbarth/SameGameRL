@@ -8,7 +8,7 @@ class BaseAgent(ABC):
         pass
 
     @abstractmethod
-    def act_eval(self, observation: np.ndarray) -> tuple[int, np.ndarray]:
+    def act_visualize(self, observation: np.ndarray) -> tuple[int, np.ndarray]:
         pass
 
     @abstractmethod
