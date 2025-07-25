@@ -14,27 +14,6 @@ from samegamerl.game.game_params import NUM_COLORS, NUM_ROWS, NUM_COLS
 from samegamerl.agents.replay_buffer import ReplayBuffer
 
 
-# Define model
-class NeuralNetwork(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.flatten = nn.Flatten()
-        self.linear_relu_stack = nn.Sequential(
-            nn.Linear((NUM_ROWS) * (NUM_COLS) * NUM_COLORS, 1024),
-            nn.ReLU(),
-            nn.Linear(1024, 512),
-            nn.ReLU(),
-            nn.Linear(512, 256),
-            nn.ReLU(),
-            nn.Linear(256, NUM_ROWS * NUM_COLS),
-        )
-
-    def forward(self, x):
-        x = self.flatten(x)
-        logits = self.linear_relu_stack(x)
-        return logits
-
-
 """
 class NeuralNetwork(nn.Module):
     def __init__(self):
@@ -70,6 +49,8 @@ class DqnAgent(BaseAgent):
 
     def __init__(
         self,
+        model: nn.Module,
+        model_name: str,  # used for saving the model
         learning_rate: float,
         initial_epsilon: float,  # determines how random the bot chooses it's actions
         epsilon_decay: float,  # how quickly the bot moves from exploration to exploitation
@@ -86,10 +67,10 @@ class DqnAgent(BaseAgent):
         )
         print(f"Using {self.device} device")
 
-        self.model = NeuralNetwork().to(self.device)
-        self.target_model = NeuralNetwork().to(self.device)
+        self.model = model.to(self.device)
+        self.target_model = model.to(self.device)
 
-        self.replay_buffer = ReplayBuffer(capacity=2000)
+        self.replay_buffer = ReplayBuffer(capacity=5000)
         self.batch_size = batch_size
         self.won = 0
 
@@ -99,11 +80,9 @@ class DqnAgent(BaseAgent):
         self.epsilon_decay = epsilon_decay
 
         # learning
-        self.batch_size = 128
+        self.batch_size = batch_size
         self.gamma = gamma
-        self.target_update_interval = 200
-        self.target_updated = 0
-        self.model_name = "LinearBot"
+        self.model_name = model_name
         self.tau = tau
         self.learning_rate = learning_rate
 
@@ -126,7 +105,7 @@ class DqnAgent(BaseAgent):
             move = q_values.argmax().item()
         return move
 
-    def act_eval(self, observation: np.ndarray) -> tuple[int, np.ndarray]:
+    def act_visualize(self, observation: np.ndarray) -> tuple[int, np.ndarray]:
         # choose with probability epsilon a random move
         # balancing exploration and exploitation
         if random.random() < self.epsilon:
@@ -192,18 +171,22 @@ class DqnAgent(BaseAgent):
             ] * self.tau + target_model_state_dict[key] * (1 - self.tau)
         self.target_model.load_state_dict(target_model_state_dict)
 
-    def save(self):
+    def save(self, name: str | None = None):
+        if not name:
+            name = self.model_name
         torch.save(
             {
                 "model_state_dict": self.model.state_dict(),
                 "optimizer_state_dict": self.opt.state_dict(),
                 "target_model_state_dict": self.target_model.state_dict(),
             },
-            "samegamerl/models/" + self.model_name + ".pth",
+            "samegamerl/models/" + name + ".pth",
         )
 
-    def load(self, load_target=False):
-        checkpoint = torch.load("samegamerl/models/" + self.model_name + ".pth")
+    def load(self, load_target=False, name: str | None = None):
+        if not name:
+            name = self.model_name
+        checkpoint = torch.load("samegamerl/models/" + name + ".pth")
         self.model.load_state_dict(checkpoint["model_state_dict"])
         self.opt.load_state_dict(checkpoint["optimizer_state_dict"])
         if load_target:
