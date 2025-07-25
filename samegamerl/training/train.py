@@ -1,6 +1,6 @@
 from samegamerl.environments.samegame_env import SameGameEnv
 from samegamerl.agents.dqn_agent import DqnAgent
-from samegamerl.evaluation.plot_helper import plot_results
+from samegamerl.evaluation.plot_helper import plot_result
 from tqdm import tqdm
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
@@ -78,4 +78,4 @@ for episode in tqdm(range(n_episodes)):
 
 agent.save()
 
-plot_results(results, interval=1)
+plot_result(results, interval=1)
