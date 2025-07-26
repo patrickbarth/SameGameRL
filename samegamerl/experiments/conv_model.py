@@ -8,13 +8,14 @@ from samegamerl.evaluation.validator import validate
 from samegamerl.game.game_params import NUM_COLORS, NUM_ROWS, NUM_COLS
 
 from samegamerl.evaluation.visualize_agent import play_eval_game
+from samegamerl.training.train import train
 
 """
 Experiment meta info
 """
 
 
-experiment_name = "CNN"
+experiment_name = "test"
 
 
 """
@@ -55,19 +56,19 @@ Set Hyperparameters
 
 # training specific
 batch_size = 512
-n_episodes = 100_000
+n_games = 10_000
 max_steps = 20  # half of cells on the field is a reasonable value
 
 # intervals
-update_target_freq = 100
-report_freq = 100
-initial_update_done = n_episodes // 2
-visualize_freq = 5000
+update_target_num = 10_000
+report_num = 1000
+visualize_num = 20
+initial_update_done = n_games // 2
 
 # agent specific
 learning_rate = 0.0001
 start_epsilon = 1.0
-epsilon_decay = start_epsilon / n_episodes
+epsilon_decay = start_epsilon / n_games
 final_epsilon = 0.1
 gamma = 0.5
 
@@ -88,58 +89,22 @@ agent = DqnAgent(
     batch_size=batch_size,
 )
 
-agent.load(name="CNN_base")
-
-
-# used during training loop
-total_reward = 0
-loss = 0
-results = []
-
+# agent.load(name="CNN_base")
 
 """
 Training loop
 """
+results = train(
+    agent,
+    env,
+    epochs=n_games,
+    max_steps=max_steps,
+    report_num=report_num,
+    visualize_num=visualize_num,
+    update_target_num=update_target_num,
+)
 
-for episode in tqdm(range(n_episodes)):
-    obs = env.reset()
-
-    for step in range(max_steps):
-        action = agent.act(obs)
-
-        next_obs, reward, done, _ = env.step(action)
-
-        agent.remember(obs, action, reward, next_obs, done)
-        obs = next_obs
-        total_reward += reward
-
-        if done:
-            break
-        if step > max_steps / 2 and env.game.get_singles() == env.game.left:
-            break
-
-    cur_loss = agent.learn()
-    loss = (loss + cur_loss) / 2
-    agent.decrease_epsilon()
-
-    if episode % report_freq == report_freq - 1:
-        results.append(float(loss))
-        # print(f"Episode {episode+1} - Reward: {total_reward:.2f} - Epsilon: {agent.epsilon:.3f} - Loss: {loss:.5f} ")
-        # total_reward = 0
-        loss = 0
-
-    if episode % visualize_freq == visualize_freq - 1:
-        play_eval_game(agent, visualize=True, waiting_time=1000)
-
-    if episode % update_target_freq == 0:
-        agent.update_target_model()
-
-    # if episode == initial_update_done:
-    # agent.gamma = 0.8
-    # agent.epsilon = 1
-
-
-agent.save()
+# agent.save()
 
 """
 Evaluation
@@ -147,6 +112,6 @@ Evaluation
 
 plot_result(results, interval=10)
 
-done, terminals, evals = validate(agent)
+wins, losses, evals = validate(agent)
 plot_evals(evals)
-print(done, terminals)
+print(wins, losses)
