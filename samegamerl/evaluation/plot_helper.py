@@ -19,10 +19,13 @@ def plot_result(results: list[int], interval=10):
     plt.show()
 
 
-def plot_evals(evals: dict[str, list[int]]):
+def plot_evals(evals: list[tuple[int, int, int]]):
     style.use("fivethirtyeight")
     fig, ax = plt.subplots()
-    for eval in evals:
-        ax.plot(evals[eval], label=eval)
+    evals.sort()
+    left, singles_left, reward = list(zip(*evals))
+    ax.plot(left, label="cells left")
+    ax.plot(singles_left, label="isolated cells left")
+    ax.plot(reward, label="total reward gained")
     plt.legend()
     plt.show()

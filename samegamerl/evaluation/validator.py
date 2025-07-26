@@ -2,13 +2,13 @@ from samegamerl.agents.dqn_agent import DqnAgent
 from samegamerl.environments.samegame_env import SameGameEnv
 
 
-def validate(agent: DqnAgent, num_games=10) -> tuple[int, int, dict[str, list[int]]]:
+def validate(
+    agent: DqnAgent, num_games=100
+) -> tuple[int, int, list[tuple[int, int, int]]]:
     env = SameGameEnv()
     dones = 0
     terminals = 0
-    left = []
-    singles_left = []
-    rewards = []
+    results = []  # fill with (left, singles_left, rewards)
 
     agent.model.eval()
     for game in range(num_games):
@@ -24,28 +24,14 @@ def validate(agent: DqnAgent, num_games=10) -> tuple[int, int, dict[str, list[in
 
             if done:
                 dones += 1
-                left.append(0)
-                singles_left.append(0)
-                rewards.append(total_reward)
+                results.append((0, 0, total_reward))
                 break
 
             if env.game.get_singles() == env.game.left:
                 terminals += 1
-                left.append(env.game.left)
-                singles_left.append(env.game.left)
-                rewards.append(total_reward)
+                results.append((env.game.left, env.game.left, total_reward))
                 break
 
-        left.append(env.game.left)
-        singles_left.append(env.game.get_singles())
-        rewards.append(total_reward)
+        results.append((env.game.left, env.game.get_singles(), total_reward))
 
-    return (
-        dones,
-        terminals,
-        {
-            "left": left,
-            "singles_left": singles_left,
-            "rewards": rewards,
-        },
-    )
+    return (dones, terminals, results)
