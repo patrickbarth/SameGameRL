@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 
 from samegamerl.agents.base_agent import BaseAgent
 from samegamerl.game.game import Game
+from samegamerl.game.game_config import GameConfig
 from samegamerl.agents.replay_buffer import ReplayBuffer
 
 
@@ -49,20 +50,20 @@ class DqnAgent(BaseAgent):
     def __init__(
         self,
         model: nn.Module,
+        config: GameConfig,
         model_name: str,  # used for saving the model
         learning_rate: float,
         initial_epsilon: float,  # determines how random the bot chooses it's actions
         epsilon_decay: float,  # how quickly the bot moves from exploration to exploitation
         final_epsilon: float,  # minimum rate of exploration
-        input_shape: tuple,  # (channels, height, width) for observation
-        action_space_size: int,  # number of possible actions
         batch_size: int = 128,  # number of game moves used for each training episode
         gamma: float = 0.95,  # how much future expected rewards count towards an action
         tau: float = 0.5,  # how quickly the target model adapts to the model
     ):
         # Store configuration
-        self.input_shape = input_shape
-        self.action_space_size = action_space_size
+        self.config = config
+        self.input_shape = config.observation_shape
+        self.action_space_size = config.action_space_size
 
         self.device = (
             "cuda"
@@ -115,16 +116,17 @@ class DqnAgent(BaseAgent):
     def act_visualize(self, observation: np.ndarray) -> tuple[int, np.ndarray]:
         # choose with probability epsilon a random move
         # balancing exploration and exploitation
+        obs_tensor = (
+            torch.tensor(observation, dtype=torch.float32)
+            .unsqueeze(0)
+            .to(self.device)
+        )
+        with torch.no_grad():
+            q_values = self.model(obs_tensor)
+            
         if random.random() < self.epsilon:
             move = random.randint(0, self.action_space_size - 1)
         else:
-            obs_tensor = (
-                torch.tensor(observation, dtype=torch.float32)
-                .unsqueeze(0)
-                .to(self.device)
-            )
-            with torch.no_grad():
-                q_values = self.model(obs_tensor)
             move = q_values.argmax().item()
         return move, q_values
 

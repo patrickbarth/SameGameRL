@@ -6,6 +6,7 @@ from tqdm import tqdm
 from samegamerl.training.train import train
 from samegamerl.agents.dqn_agent import DqnAgent
 from samegamerl.environments.samegame_env import SameGameEnv
+from samegamerl.game.game_config import GameFactory
 
 
 class MockModel:
@@ -216,7 +217,9 @@ class TestTrainFunction:
         )
         
         # Should update target model at correct intervals
-        expected_updates = epochs // (epochs // update_target_num) + 1
+        # For 15 epochs with update_target_num=5: update_target_freq = 15//5 = 3
+        # Updates happen at episodes: 0, 3, 6, 9, 12 = 5 total updates
+        expected_updates = 5
         assert agent.target_updates == expected_updates
     
     @patch('samegamerl.training.train.play_eval_game')
@@ -270,21 +273,24 @@ class TestTrainWithRealComponents:
         import torch.nn as nn
         
         class SimpleModel(nn.Module):
-            def __init__(self):
+            def __init__(self, input_size, output_size):
                 super().__init__()
-                self.fc = nn.Linear(64, 64)
+                self.fc = nn.Linear(input_size, output_size)
             
             def forward(self, x):
                 batch_size = x.shape[0]
                 x_flat = x.view(batch_size, -1)
                 return self.fc(x_flat)
         
-        return SimpleModel()
+        return SimpleModel
     
     def test_train_with_real_agent_and_env(self, simple_model):
         # Create real agent and environment
+        config = GameFactory.custom(2, 2, 3)
+        model = simple_model(input_size=12, output_size=4)  # 3*2*2=12 inputs, 2*2=4 actions
         agent = DqnAgent(
-            model=simple_model,
+            model=model,
+            config=config,
             model_name="test_train",
             learning_rate=0.01,
             initial_epsilon=1.0,
@@ -293,7 +299,7 @@ class TestTrainWithRealComponents:
             batch_size=4
         )
         
-        env = SameGameEnv(num_rows=2, num_cols=2, num_colors=3)
+        env = SameGameEnv(config)
         
         # Test short training run
         results = train(
@@ -317,8 +323,11 @@ class TestTrainWithRealComponents:
         assert len(agent.replay_buffer) > 0
     
     def test_train_memory_accumulation(self, simple_model):
+        config = GameFactory.custom(2, 2, 3)
+        model = simple_model(input_size=12, output_size=4)  # 3*2*2=12 inputs, 2*2=4 actions
         agent = DqnAgent(
-            model=simple_model,
+            model=model,
+            config=config,
             model_name="memory_test",
             learning_rate=0.01,
             initial_epsilon=1.0,
@@ -327,7 +336,7 @@ class TestTrainWithRealComponents:
             batch_size=8
         )
         
-        env = SameGameEnv(num_rows=2, num_cols=2, num_colors=3)
+        env = SameGameEnv(config)
         
         initial_buffer_size = len(agent.replay_buffer)
         

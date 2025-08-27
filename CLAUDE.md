@@ -114,8 +114,7 @@ env = SameGameEnv(large_config)
 # Agent with appropriate dimensions
 agent = DqnAgent(
     model=YourModel(config),
-    input_shape=config.observation_shape,
-    action_space_size=config.action_space_size,
+    config=config,
     # ... other parameters
 )
 ```

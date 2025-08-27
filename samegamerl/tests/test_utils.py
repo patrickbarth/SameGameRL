@@ -173,13 +173,12 @@ class AgentTestBuilder:
         
         return DqnAgent(
             model=self.model,
+            config=self.config,
             model_name=self.model_name,
             learning_rate=self.learning_rate,
             initial_epsilon=self.initial_epsilon,
             epsilon_decay=self.epsilon_decay,
             final_epsilon=self.final_epsilon,
-            input_shape=self.config.observation_shape,
-            action_space_size=self.config.action_space_size,
             batch_size=self.batch_size,
             gamma=self.gamma,
             tau=self.tau

@@ -84,13 +84,12 @@ config = GameFactory.medium()
 env = SameGameEnv(config)
 agent = DqnAgent(
     model=NeuralNetwork(config),
+    config=config,
     model_name=experiment_name,
     learning_rate=learning_rate,
     initial_epsilon=start_epsilon,
     epsilon_decay=epsilon_decay,
     final_epsilon=final_epsilon,
-    input_shape=config.observation_shape,
-    action_space_size=config.action_space_size,
     gamma=gamma,
     batch_size=batch_size,
 )

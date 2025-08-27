@@ -8,6 +8,7 @@ import os
 
 from samegamerl.agents.dqn_agent import DqnAgent
 from samegamerl.agents.replay_buffer import ReplayBuffer
+from samegamerl.game.game_config import GameFactory
 
 
 class SimpleTestModel(nn.Module):
@@ -28,8 +29,10 @@ class TestDQNAgentInitialization:
     
     def test_basic_initialization(self):
         model = SimpleTestModel()
+        config = GameFactory.default()
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="test_model",
             learning_rate=0.001,
             initial_epsilon=1.0,
@@ -49,8 +52,10 @@ class TestDQNAgentInitialization:
     
     def test_custom_hyperparameters(self):
         model = SimpleTestModel()
+        config = GameFactory.default()
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="custom_model",
             learning_rate=0.01,
             initial_epsilon=0.8,
@@ -67,8 +72,10 @@ class TestDQNAgentInitialization:
     
     def test_device_selection(self):
         model = SimpleTestModel()
+        config = GameFactory.default()
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="test_model",
             learning_rate=0.001,
             initial_epsilon=1.0,
@@ -86,8 +93,10 @@ class TestDQNAgentInitialization:
     
     def test_model_and_target_model_creation(self):
         model = SimpleTestModel()
+        config = GameFactory.default()
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="test_model",
             learning_rate=0.001,
             initial_epsilon=1.0,
@@ -103,8 +112,10 @@ class TestDQNAgentInitialization:
     
     def test_optimizer_and_criterion_setup(self):
         model = SimpleTestModel()
+        config = GameFactory.default()
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="test_model",
             learning_rate=0.001,
             initial_epsilon=1.0,
@@ -120,8 +131,11 @@ class TestDQNAgentInitialization:
     
     def test_replay_buffer_initialization(self):
         model = SimpleTestModel()
+
+        config = GameFactory.default()
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="test_model",
             learning_rate=0.001,
             initial_epsilon=1.0,
@@ -137,9 +151,12 @@ class TestDQNAgentActionSelection:
     """Test action selection mechanisms"""
     
     def test_act_epsilon_greedy(self):
+        config = GameFactory.custom(2, 2, 4)  # 2x2 board with 4 colors = 16 inputs, 4 actions
         model = SimpleTestModel(input_size=16, output_size=4)
+
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="test_model",
             learning_rate=0.001,
             initial_epsilon=1.0,
@@ -155,9 +172,12 @@ class TestDQNAgentActionSelection:
         assert all(0 <= action < 4 for action in actions)
     
     def test_act_greedy_mode(self):
+        config = GameFactory.custom(2, 2, 4)  # 2x2 board with 4 colors = 16 inputs, 4 actions
         model = SimpleTestModel(input_size=16, output_size=4)
+
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="test_model",
             learning_rate=0.001,
             initial_epsilon=0.0,  # No randomness
@@ -174,9 +194,12 @@ class TestDQNAgentActionSelection:
         assert 0 <= actions[0] < 4
     
     def test_act_visualize(self):
+        config = GameFactory.custom(2, 2, 4)  # 2x2 board with 4 colors = 16 inputs, 4 actions
         model = SimpleTestModel(input_size=16, output_size=4)
+
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="test_model",
             learning_rate=0.001,
             initial_epsilon=0.0,
@@ -195,9 +218,12 @@ class TestDQNAgentActionSelection:
     
     @patch('random.random')
     def test_epsilon_thresholding(self, mock_random):
+        config = GameFactory.custom(2, 2, 4)  # 2x2 board with 4 colors = 16 inputs, 4 actions
         model = SimpleTestModel(input_size=16, output_size=4)
+
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="test_model",
             learning_rate=0.001,
             initial_epsilon=0.5,
@@ -226,8 +252,11 @@ class TestDQNAgentLearning:
     
     def test_remember_experience(self):
         model = SimpleTestModel()
+
+        config = GameFactory.default()
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="test_model",
             learning_rate=0.001,
             initial_epsilon=1.0,
@@ -248,8 +277,11 @@ class TestDQNAgentLearning:
     
     def test_learn_insufficient_data(self):
         model = SimpleTestModel()
+
+        config = GameFactory.default()
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="test_model",
             learning_rate=0.001,
             initial_epsilon=1.0,
@@ -269,8 +301,11 @@ class TestDQNAgentLearning:
     
     def test_learn_with_sufficient_data(self):
         model = SimpleTestModel(input_size=64, output_size=64)
+        config = GameFactory.default()
+
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="test_model",
             learning_rate=0.001,
             initial_epsilon=1.0,
@@ -292,8 +327,11 @@ class TestDQNAgentLearning:
     
     def test_decrease_epsilon(self):
         model = SimpleTestModel()
+
+        config = GameFactory.default()
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="test_model",
             learning_rate=0.001,
             initial_epsilon=1.0,
@@ -317,8 +355,11 @@ class TestDQNAgentLearning:
     
     def test_update_target_model(self):
         model = SimpleTestModel()
+
+        config = GameFactory.default()
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="test_model",
             learning_rate=0.001,
             initial_epsilon=1.0,
@@ -348,8 +389,11 @@ class TestDQNAgentPersistence:
     
     def test_save_model(self):
         model = SimpleTestModel()
+
+        config = GameFactory.default()
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="test_save_model",
             learning_rate=0.001,
             initial_epsilon=1.0,
@@ -381,8 +425,11 @@ class TestDQNAgentPersistence:
     
     def test_save_model_custom_name(self):
         model = SimpleTestModel()
+
+        config = GameFactory.default()
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="original_name",
             learning_rate=0.001,
             initial_epsilon=1.0,
@@ -404,8 +451,11 @@ class TestDQNAgentPersistence:
     
     def test_load_model(self):
         model = SimpleTestModel()
+
+        config = GameFactory.default()
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="test_load_model",
             learning_rate=0.001,
             initial_epsilon=1.0,
@@ -429,8 +479,11 @@ class TestDQNAgentPersistence:
                 
                 # Create new agent and load
                 new_model = SimpleTestModel()
+                config = GameFactory.default()
+
                 new_agent = DqnAgent(
                     model=new_model,
+                    config=config,
                     model_name="test_load_model",
                     learning_rate=0.002,  # Different from original
                     initial_epsilon=0.5,
@@ -452,8 +505,11 @@ class TestDQNAgentPersistence:
     
     def test_load_target_model(self):
         model = SimpleTestModel()
+
+        config = GameFactory.default()
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="test_load_target",
             learning_rate=0.001,
             initial_epsilon=1.0,
@@ -476,8 +532,11 @@ class TestDQNAgentPersistence:
                 
                 # Load with target model
                 new_model = SimpleTestModel()
+                config = GameFactory.default()
+
                 new_agent = DqnAgent(
                     model=new_model,
+                    config=config,
                     model_name="test_load_target",
                     learning_rate=0.001,
                     initial_epsilon=1.0,
@@ -500,8 +559,11 @@ class TestDQNAgentIntegration:
     
     def test_complete_training_step(self):
         model = SimpleTestModel(input_size=64, output_size=64)
+        config = GameFactory.default()
+
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="integration_test",
             learning_rate=0.001,
             initial_epsilon=1.0,
@@ -540,8 +602,11 @@ class TestDQNAgentIntegration:
     
     def test_model_mode_switching(self):
         model = SimpleTestModel()
+
+        config = GameFactory.default()
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="mode_test",
             learning_rate=0.001,
             initial_epsilon=0.0,  # Always greedy
@@ -576,8 +641,11 @@ class TestDQNAgentIntegration:
                 return self.fc(x)
         
         cnn_model = CNNModel()
+        config = GameFactory.default()
+
         agent = DqnAgent(
             model=cnn_model,
+            config=config,
             model_name="cnn_test",
             learning_rate=0.001,
             initial_epsilon=0.0,
@@ -595,9 +663,12 @@ class TestDQNAgentErrorHandling:
     """Test error handling and edge cases"""
     
     def test_invalid_observation_shape(self):
+        config = GameFactory.custom(2, 2, 4)  # 2x2 board with 4 colors = 16 inputs, 4 actions
         model = SimpleTestModel(input_size=16, output_size=4)
+
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="error_test",
             learning_rate=0.001,
             initial_epsilon=0.0,
@@ -618,8 +689,11 @@ class TestDQNAgentErrorHandling:
     
     def test_empty_model_name(self):
         model = SimpleTestModel()
+
+        config = GameFactory.default()
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="",
             learning_rate=0.001,
             initial_epsilon=1.0,
@@ -632,8 +706,11 @@ class TestDQNAgentErrorHandling:
     
     def test_zero_learning_rate(self):
         model = SimpleTestModel()
+
+        config = GameFactory.default()
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="zero_lr_test",
             learning_rate=0.0,
             initial_epsilon=1.0,
@@ -649,8 +726,11 @@ class TestDQNAgentErrorHandling:
         model = SimpleTestModel()
         
         # Test with extreme values
+        config = GameFactory.default()
+
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="extreme_test",
             learning_rate=1.0,  # Very high
             initial_epsilon=0.0,  # No exploration
@@ -673,8 +753,12 @@ class TestDQNAgentCompatibility:
         from samegamerl.agents.base_agent import BaseAgent
         
         model = SimpleTestModel()
+
+        
+        config = GameFactory.default()
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="compatibility_test",
             learning_rate=0.001,
             initial_epsilon=1.0,
@@ -707,8 +791,11 @@ class TestDQNAgentCompatibility:
     def test_method_signatures_match_base_class(self):
         """Ensure method signatures match base class requirements"""
         model = SimpleTestModel()
+
+        config = GameFactory.default()
         agent = DqnAgent(
             model=model,
+            config=config,
             model_name="signature_test",
             learning_rate=0.001,
             initial_epsilon=1.0,
