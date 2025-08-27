@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 from unittest.mock import patch, MagicMock
 from samegamerl.environments.samegame_env import SameGameEnv
+from samegamerl.game.game_config import GameConfig, GameFactory
 
 
 class TestEnvironmentInitialization:
@@ -9,14 +10,15 @@ class TestEnvironmentInitialization:
 
     def test_default_initialization(self):
         env = SameGameEnv()
-        assert env.num_colors == 4
+        assert env.num_colors == 3
         assert env.num_rows == 8
         assert env.num_cols == 8
         assert not env.done
         assert env.game is not None
     
     def test_custom_initialization(self):
-        env = SameGameEnv(num_colors=3, num_rows=5, num_cols=6)
+        config = GameFactory.custom(num_rows=5, num_cols=6, num_colors=3)
+        env = SameGameEnv(config)
         assert env.num_colors == 3
         assert env.num_rows == 5
         assert env.num_cols == 6
@@ -29,7 +31,8 @@ class TestObservationSpace:
     """Test observation space and one-hot encoding"""
 
     def test_trainable_game_basic(self):
-        env = SameGameEnv(num_colors=3, num_rows=2, num_cols=2)
+        config = GameFactory.custom(num_rows=2, num_cols=2, num_colors=3)
+        env = SameGameEnv(config)
         board = [[0, 1], [2, 1]]
 
         tensor = env._trainable_game(board)
@@ -41,7 +44,8 @@ class TestObservationSpace:
         assert np.array_equal(tensor, expected), "One-hot encoding failed"
     
     def test_observation_shape(self):
-        env = SameGameEnv(num_colors=4, num_rows=3, num_cols=5)
+        config = GameFactory.custom(num_rows=3, num_cols=5, num_colors=4)
+        env = SameGameEnv(config)
         obs = env.get_observation()
         assert obs.shape == (4, 3, 5)
         assert obs.dtype == np.float32
@@ -53,7 +57,8 @@ class TestObservationSpace:
         assert np.all((obs == 0) | (obs == 1))
     
     def test_observation_consistency(self):
-        env = SameGameEnv(num_colors=3, num_rows=2, num_cols=2)
+        config = GameFactory.custom(num_rows=2, num_cols=2, num_colors=3)
+        env = SameGameEnv(config)
         board = [[1, 2], [0, 1]]
         env.reset(board=board)
         
@@ -68,7 +73,8 @@ class TestObservationSpace:
                     assert obs[ch, r, c] == expected_val
     
     def test_reverse_trainable_game(self):
-        env = SameGameEnv(num_colors=3, num_rows=2, num_cols=2)
+        config = GameFactory.custom(num_rows=2, num_cols=2, num_colors=3)
+        env = SameGameEnv(config)
         original_board = [[0, 1], [2, 1]]
         
         # Convert to tensor and back
@@ -78,7 +84,8 @@ class TestObservationSpace:
         assert reconstructed == original_board
     
     def test_action_to_2d_conversion(self):
-        env = SameGameEnv(num_rows=3, num_cols=4)
+        config = GameFactory.custom(num_rows=3, num_cols=4, num_colors=3)
+        env = SameGameEnv(config)
         
         # Test various actions
         assert env._to_2d(0) == (0, 0)    # Top-left
@@ -91,7 +98,8 @@ class TestResetFunctionality:
     """Test environment reset behavior"""
     
     def test_reset_without_board(self):
-        env = SameGameEnv(num_rows=3, num_cols=3)
+        config = GameFactory.custom(num_rows=3, num_cols=3, num_colors=3)
+        env = SameGameEnv(config)
         env.done = True
         obs = env.reset()
         
@@ -100,7 +108,8 @@ class TestResetFunctionality:
         assert isinstance(obs, np.ndarray)
     
     def test_reset_with_custom_board(self):
-        env = SameGameEnv(num_colors=3, num_rows=2, num_cols=3)
+        config = GameFactory.custom(num_rows=2, num_cols=3, num_colors=3)
+        env = SameGameEnv(config)
         custom_board = [[1, 2, 0], [2, 1, 1]]
         
         obs = env.reset(board=custom_board)
@@ -135,7 +144,8 @@ class TestStepFunction:
         assert isinstance(info, dict)
     
     def test_step_observation_shape(self):
-        env = SameGameEnv(num_colors=3, num_rows=4, num_cols=5)
+        config = GameFactory.custom(num_rows=4, num_cols=5, num_colors=3)
+        env = SameGameEnv(config)
         obs, _, _, _ = env.step(0)
         assert obs.shape == (3, 4, 5)
     
@@ -146,7 +156,8 @@ class TestStepFunction:
             env.step(0)
     
     def test_step_modifies_game_state(self):
-        env = SameGameEnv(num_rows=2, num_cols=2, num_colors=3)
+        config = GameFactory.custom(num_rows=2, num_cols=2, num_colors=3)
+        env = SameGameEnv(config)
         board = [[1, 1], [2, 2]]
         env.reset(board=board)
         
@@ -157,7 +168,8 @@ class TestStepFunction:
         assert env.game.left != initial_left or done
     
     def test_step_boundary_actions(self):
-        env = SameGameEnv(num_rows=2, num_cols=2)
+        config = GameFactory.custom(num_rows=2, num_cols=2, num_colors=3)
+        env = SameGameEnv(config)
         
         # Test corner actions
         for action in [0, 1, 2, 3]:
@@ -172,7 +184,8 @@ class TestRewardFunction:
     """Test reward computation logic"""
     
     def test_winning_reward(self):
-        env = SameGameEnv(num_rows=2, num_cols=2, num_colors=3)
+        config = GameFactory.custom(num_rows=2, num_cols=2, num_colors=3)
+        env = SameGameEnv(config)
         # Create board that can be cleared in one move
         board = [[1, 1], [1, 1]]
         env.reset(board=board)
@@ -183,7 +196,8 @@ class TestRewardFunction:
         assert reward == 5.0  # Winning reward
     
     def test_invalid_move_penalty(self):
-        env = SameGameEnv(num_rows=2, num_cols=2, num_colors=3)
+        config = GameFactory.custom(num_rows=2, num_cols=2, num_colors=3)
+        env = SameGameEnv(config)
         board = [[1, 0], [2, 1]]
         env.reset(board=board)
         
@@ -192,7 +206,8 @@ class TestRewardFunction:
         assert reward == -0.3  # No change penalty
     
     def test_single_reduction_reward(self):
-        env = SameGameEnv(num_rows=3, num_cols=3, num_colors=3)
+        config = GameFactory.custom(num_rows=3, num_cols=3, num_colors=3)
+        env = SameGameEnv(config)
         # Create board where move reduces singles
         board = [[1, 1, 2], [2, 1, 2], [2, 2, 2]]
         env.reset(board=board)
@@ -205,7 +220,8 @@ class TestRewardFunction:
             assert reward > 0  # Should get positive reward for reducing singles
     
     def test_all_singles_penalty(self):
-        env = SameGameEnv(num_rows=2, num_cols=2, num_colors=3)
+        config = GameFactory.custom(num_rows=2, num_cols=2, num_colors=3)
+        env = SameGameEnv(config)
         # Create board where all remaining tiles are singles
         board = [[1, 2], [2, 1]]
         env.reset(board=board)
@@ -223,7 +239,8 @@ class TestRewardFunction:
     
     def test_reward_bounds(self):
         """Test that rewards stay within reasonable bounds"""
-        env = SameGameEnv()
+        config = GameFactory.custom(num_rows=2, num_cols=2, num_colors=3)
+        env = SameGameEnv(config)
         
         # Test with various board configurations
         test_boards = [
@@ -249,7 +266,8 @@ class TestEnvironmentIntegration:
     """Test integration with game engine"""
     
     def test_game_state_synchronization(self):
-        env = SameGameEnv(num_rows=2, num_cols=2, num_colors=3)
+        config = GameFactory.custom(num_rows=2, num_cols=2, num_colors=3)
+        env = SameGameEnv(config)
         board = [[1, 2], [0, 1]]
         env.reset(board=board)
         
@@ -261,7 +279,8 @@ class TestEnvironmentIntegration:
         assert env.done == env.game.done()
     
     def test_observation_reflects_game_state(self):
-        env = SameGameEnv(num_rows=2, num_cols=2, num_colors=3)
+        config = GameFactory.custom(num_rows=2, num_cols=2, num_colors=3)
+        env = SameGameEnv(config)
         board = [[1, 2], [0, 1]]
         env.reset(board=board)
         
@@ -272,28 +291,30 @@ class TestEnvironmentIntegration:
         reconstructed = env._reverse_trainable_game(obs)
         assert reconstructed == game_board
     
-    @patch('samegamerl.game.game.Game')
-    def test_environment_uses_game_correctly(self, mock_game):
+    def test_environment_uses_game_correctly(self):
         """Test that environment properly delegates to game"""
-        mock_game_instance = MagicMock()
-        mock_game.return_value = mock_game_instance
-        mock_game_instance.done.return_value = False
-        mock_game_instance.get_board.return_value = [[1, 2], [0, 1]]
-        mock_game_instance.left = 3
-        mock_game_instance.get_singles.return_value = 1
+        config = GameFactory.custom(num_rows=2, num_cols=2, num_colors=4)
+        env = SameGameEnv(config)
         
-        env = SameGameEnv(num_rows=2, num_cols=2)
+        # Verify game was created with correct configuration
+        assert env.game.config == config
+        assert env.game.num_rows == 2
+        assert env.game.num_cols == 2
+        assert env.game.num_colors == 4
         
-        # Verify game is created with correct parameters
-        mock_game.assert_called_with(num_colors=4, num_rows=2, num_cols=2)
+        # Test that environment properly uses game methods
+        initial_left = env.game.left
+        obs, reward, done, _ = env.step(0)
         
-        # Test step calls game.move
-        env.step(0)
-        mock_game_instance.move.assert_called_once()
+        # Should return proper observation structure
+        assert obs.shape == (4, 2, 2)
+        assert isinstance(reward, (int, float))
+        assert isinstance(done, bool)
     
     def test_multiple_episodes(self):
         """Test that environment works correctly across multiple episodes"""
-        env = SameGameEnv(num_rows=3, num_cols=3)
+        config = GameFactory.custom(num_rows=3, num_cols=3, num_colors=3)
+        env = SameGameEnv(config)
         
         for episode in range(3):
             env.reset()
@@ -343,7 +364,8 @@ class TestLegacyCompatibility:
         assert isinstance(info, dict)
 
     def test_env_done_when_game_is_over(self):
-        env = SameGameEnv(num_colors=2, num_cols=10, num_rows=10)
+        config = GameFactory.custom(num_rows=10, num_cols=10, num_colors=2)
+        env = SameGameEnv(config)
 
         if env.num_cols < 2 or env.num_rows < 2:
             return
@@ -364,7 +386,8 @@ class TestLegacyCompatibility:
         assert env.game.left == 0
 
     def test_step_on_custom_board(self):
-        env = SameGameEnv(num_rows=4, num_cols=3, num_colors=4)
+        config = GameFactory.custom(num_rows=4, num_cols=3, num_colors=4)
+        env = SameGameEnv(config)
         env.reset(board=[[1, 1, 2], [2, 3, 2], [2, 3, 1], [2, 2, 2]])
 
         expected_obs = env._trainable_game([[0, 0, 2], [2, 3, 2], [2, 3, 1], [2, 2, 2]])
