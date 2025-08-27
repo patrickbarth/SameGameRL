@@ -2,24 +2,24 @@ from copy import deepcopy
 import numpy as np
 
 from samegamerl.game.game import Game
-from samegamerl.game.game_params import NUM_COLS, NUM_ROWS, NUM_COLORS
+from samegamerl.game.game_config import GameConfig, GameFactory
 
 
 class SameGameEnv:
-    def __init__(self, num_colors=NUM_COLORS, num_rows=NUM_ROWS, num_cols=NUM_COLS):
-        self.num_colors = num_colors
-        self.num_rows = num_rows
-        self.num_cols = num_cols
-        self.game = Game(
-            num_colors=self.num_colors, num_rows=self.num_rows, num_cols=self.num_cols
-        )
+    def __init__(self, config: GameConfig | None = None):
+        if config is None:
+            config = GameFactory.default()
+
+        self.config = config
+        self.num_colors = config.num_colors
+        self.num_rows = config.num_rows
+        self.num_cols = config.num_cols
+        self.game = Game(config)
         self.done = self.game.done()
         self.reset()
 
     def reset(self, board: None | list[list[int]] = None, seed=42):
-        self.game = Game(
-            num_colors=self.num_colors, num_rows=self.num_rows, num_cols=self.num_cols
-        )
+        self.game = Game(self.config)
         if board:
             self.game.set_board(board)
 
@@ -29,23 +29,31 @@ class SameGameEnv:
     def step(self, action: int) -> tuple[np.ndarray, float, bool, dict]:
         if self.done:
             raise RuntimeError("Episode done. Call reset()")
-        row, col = self._to_2d(action)
+
         prev_left = self.game.left
         prev_singles = self.game.get_singles()
+
+        row, col = self._to_2d(action)
         self.game.move((row, col))
+        self.done = self.game.done()  # might get adjusted during reward calculation
+
         cur_left = self.game.left
         cur_singles = self.game.get_singles()
+
         reward = self.compute_reward(
             prev_left, cur_left, prev_singles, cur_singles, (row, col)
         )
-        self.done = self.game.done()
+
         return self.get_observation(), reward, self.done, {}
 
     def compute_reward(
         self, prev_left, cur_left, prev_singles, cur_singles, action
     ) -> float:
         if self.game.left == 0:
-            return float(1)
+            return float(5)
+        if prev_singles == prev_left:
+            self.done = True
+            return -cur_singles / 10
         if prev_left == cur_left:
             return -0.3
 
@@ -54,7 +62,10 @@ class SameGameEnv:
         total = self.num_rows * self.num_cols
         # return removed / prev_left
         # return removed / 10
-        return single / prev_left
+        if single > 0:
+            return (single / prev_left) * 3
+        else:
+            return removed / (10 * total)
         # return single * ((total - prev_left) / total)
 
     def get_observation(self) -> np.ndarray:

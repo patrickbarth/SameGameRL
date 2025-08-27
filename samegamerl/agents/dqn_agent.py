@@ -10,7 +10,6 @@ from torch.utils.data import DataLoader
 
 from samegamerl.agents.base_agent import BaseAgent
 from samegamerl.game.game import Game
-from samegamerl.game.game_params import NUM_COLORS, NUM_ROWS, NUM_COLS
 from samegamerl.agents.replay_buffer import ReplayBuffer
 
 
@@ -55,10 +54,15 @@ class DqnAgent(BaseAgent):
         initial_epsilon: float,  # determines how random the bot chooses it's actions
         epsilon_decay: float,  # how quickly the bot moves from exploration to exploitation
         final_epsilon: float,  # minimum rate of exploration
+        input_shape: tuple,  # (channels, height, width) for observation
+        action_space_size: int,  # number of possible actions
         batch_size: int = 128,  # number of game moves used for each training episode
         gamma: float = 0.95,  # how much future expected rewards count towards an action
         tau: float = 0.5,  # how quickly the target model adapts to the model
     ):
+        # Store configuration
+        self.input_shape = input_shape
+        self.action_space_size = action_space_size
 
         self.device = (
             "cuda"
@@ -92,8 +96,10 @@ class DqnAgent(BaseAgent):
     def act(self, observation: np.ndarray) -> int:
         # choose with probability epsilon a random move
         # balancing exploration and exploitation
+        self.model.eval()
+
         if random.random() < self.epsilon:
-            move = random.randint(0, NUM_ROWS * NUM_COLS - 1)
+            move = random.randint(0, self.action_space_size - 1)
         else:
             obs_tensor = (
                 torch.tensor(observation, dtype=torch.float32)
@@ -103,13 +109,14 @@ class DqnAgent(BaseAgent):
             with torch.no_grad():
                 q_values = self.model(obs_tensor)
             move = q_values.argmax().item()
+        self.model.train()
         return move
 
     def act_visualize(self, observation: np.ndarray) -> tuple[int, np.ndarray]:
         # choose with probability epsilon a random move
         # balancing exploration and exploitation
         if random.random() < self.epsilon:
-            move = random.randint(0, NUM_ROWS * NUM_COLS - 1)
+            move = random.randint(0, self.action_space_size - 1)
         else:
             obs_tensor = (
                 torch.tensor(observation, dtype=torch.float32)
@@ -132,6 +139,7 @@ class DqnAgent(BaseAgent):
         self.replay_buffer.add(obs, action, reward, next_obs, done)
 
     def learn(self) -> float:
+
         if len(self.replay_buffer) < self.batch_size:
             return 0
 
@@ -147,10 +155,11 @@ class DqnAgent(BaseAgent):
         dones = torch.tensor(dones, dtype=torch.bool).unsqueeze(1).to(self.device)
 
         pred_q_values = self.model(obs).gather(1, actions)
-
+        self.model.eval()
         with torch.no_grad():
             next_q_values = self.target_model(next_obs).max(1).values.unsqueeze(1)
             target_q_values = rewards + self.gamma * next_q_values * (~dones)
+        self.model.train()
 
         loss = self.criterion(pred_q_values, target_q_values)
         self.opt.zero_grad()
@@ -234,7 +243,7 @@ class DqnAgent(BaseAgent):
 
     def train_game(self):
         game = Game()
-        for i in range(ceil(NUM_COLS*NUM_ROWS/3)):
+        for i in range(ceil(self.action_space_size/3)):
             board = deepcopy(game.trainable_game())
             move = self.play(game)
             next_board, reward, done = game.rl_move(move)
@@ -247,7 +256,7 @@ class DqnAgent(BaseAgent):
         # choose with probability epsilon a random move
         # balancing exploration and exploitation
         if random.random() < self.epsilon:
-            move = random.randint(0, NUM_ROWS*NUM_COLS-1)
+            move = random.randint(0, self.action_space_size-1)
         else:
             with torch.no_grad():
                 move = int(torch.argmax(self.model(torch.from_numpy(game.trainable_game()).float().unsqueeze(0))))
@@ -258,7 +267,7 @@ class DqnAgent(BaseAgent):
         # choose with probability epsilon a random move
         # balancing exploration and exploitation
         if random.random() < self.epsilon_min:
-            move = random.randint(0,  NUM_ROWS*NUM_COLS-1)
+            move = random.randint(0, self.action_space_size-1)
         else:
             with torch.no_grad():
                 move = int(torch.argmax(self.model(torch.from_numpy(game.trainable_game()).float().unsqueeze(0))))
@@ -268,7 +277,7 @@ class DqnAgent(BaseAgent):
         # choose with probability epsilon a random move
         # balancing exploration and exploitation
         if random.random() < self.epsilon_min:
-            move = random.randint(0,  NUM_ROWS*NUM_COLS-1)
+            move = random.randint(0, self.action_space_size-1)
         else:
             with torch.no_grad():
                 move = int(torch.argmax(self.model(torch.from_numpy(game.trainable_game()).float().unsqueeze(0))))

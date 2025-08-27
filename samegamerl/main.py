@@ -5,22 +5,23 @@ import sys
 
 from game.View import View
 from samegamerl.game.game import Game  # Import the game logic from another file
-from game.game_params import SCREEN_WIDTH, SCREEN_HEIGHT, NUM_ROWS, NUM_COLS, NUM_COLORS
+from samegamerl.game.game_config import GameFactory
 
 
 # initialize Pygame
 pygame.init()
 
-
-# create the screen
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Flight Game")
-
+# Use medium game configuration by default
+config = GameFactory.medium()
 
 # starting the game_logic
-game = Game()  # screen)
+game = Game(config)  # screen)
 
 view = View(game)
+
+# create the screen based on config
+screen = pygame.display.set_mode((view.screen_width, view.screen_height))
+pygame.display.set_caption("SameGame")
 
 # Call the game logic function from the other file
 running = True

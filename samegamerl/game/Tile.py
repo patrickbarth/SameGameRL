@@ -1,5 +1,5 @@
 import pygame
-from samegamerl.game.game_params import COLORS, NUM_COLS, TILE_SIZE
+from samegamerl.game.game_params import COLORS, TILE_SIZE
 
 
 class Tile:

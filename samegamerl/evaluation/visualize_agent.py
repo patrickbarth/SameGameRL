@@ -5,22 +5,23 @@ import sys
 
 from samegamerl.agents.dqn_agent import DqnAgent
 from samegamerl.game.View import View
-from samegamerl.game.game_params import NUM_COLS, NUM_ROWS, SCREEN_HEIGHT, SCREEN_WIDTH
+from samegamerl.game.game_config import GameFactory
 from samegamerl.environments.samegame_env import SameGameEnv
 
 
 def ini_visualization(game):
     pygame.init()
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    pygame.display.set_caption("Flight Game - AI playing")
-
     view = View(game)
+    screen = pygame.display.set_mode((view.screen_width, view.screen_height))
+    pygame.display.set_caption("SameGame - AI playing")
 
     return screen, view
 
 
-def play_eval_game(agent: DqnAgent, visualize=False, waiting_time=50):
-    env = SameGameEnv()
+def play_eval_game(agent: DqnAgent, visualize=False, waiting_time=50, config=None):
+    if config is None:
+        config = GameFactory.default()
+    env = SameGameEnv(config)
     obs = env.reset()
     rounds = 0
     if visualize:
@@ -29,8 +30,9 @@ def play_eval_game(agent: DqnAgent, visualize=False, waiting_time=50):
     agent.model.eval()
     cur_epsilon = agent.epsilon
     agent.epsilon = 0
+    prev_left = env.game.left
 
-    while (not done) and rounds < ceil(NUM_COLS * NUM_ROWS / 3):
+    while (not done) and rounds < ceil(env.config.total_cells / 3):
         move, values = agent.act_visualize(obs)
         if visualize:
             screen.fill((255, 255, 255))
@@ -42,6 +44,9 @@ def play_eval_game(agent: DqnAgent, visualize=False, waiting_time=50):
             pygame.time.wait(waiting_time)
         obs, reward, done, _ = env.step(move)
         print(reward)
+        if prev_left == env.game.left:
+            break
+        prev_left = env.game.left
         rounds += 1
     agent.model.train()
     agent.epsilon = cur_epsilon

@@ -6,18 +6,21 @@ from tqdm import tqdm
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from samegamerl.evaluation.visualize_agent import play_eval_game
-from samegamerl.game.game_params import NUM_COLS, NUM_ROWS
+# NUM_COLS and NUM_ROWS are no longer used - dimensions come from environment config
 
 
 def train(
     agent: DqnAgent,
     env: SameGameEnv,
     epochs=1000,
-    max_steps=NUM_ROWS * NUM_COLS // 2,
+    max_steps=None,  # If None, defaults to half of total cells
     report_num=500,
     visualize_num=10,
     update_target_num=1000,
 ):
+    # Set default max_steps if not provided
+    if max_steps is None:
+        max_steps = env.config.total_cells // 2
 
     report_freq = max(1, epochs // report_num)
     update_target_freq = max(1, epochs // update_target_num)
@@ -30,6 +33,7 @@ def train(
     total_reward = 0
     loss = 0
     results = []
+    agent.model.train()
 
     for episode in tqdm(range(epochs)):
         obs = env.reset()

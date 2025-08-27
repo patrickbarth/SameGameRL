@@ -4,20 +4,20 @@ from math import floor
 
 import numpy as np
 
-from samegamerl.game.game_params import NUM_COLS, NUM_ROWS, NUM_COLORS
+from samegamerl.game.game_config import GameConfig, GameFactory
 
 
 class Game:
 
-    def __init__(
-        self, num_rows=NUM_ROWS, num_cols=NUM_COLS, num_colors=NUM_COLORS
-    ):  # , screen):
-        # self.screen = screen
-        self.num_rows = num_rows
-        self.num_cols = num_cols
-        self.num_colors = num_colors
+    def __init__(self, config: GameConfig = None):
+        if config is None:
+            config = GameFactory.default()
+        
+        self.config = config
+        self.num_rows = config.num_rows
+        self.num_cols = config.num_cols
+        self.num_colors = config.num_colors
         self.neighbours = self.initialize_neighbours(self.num_rows, self.num_cols)
-        self.deterministic = False  # for debugging
         self.board = self.create_board(
             [[-1 for _ in range(self.num_cols)] for _ in range(self.num_rows)]
         )
@@ -29,21 +29,11 @@ class Game:
             for col in range(len(board[row])):
                 board[row][col] = random.randint(1, self.num_colors - 1)
 
-        if self.deterministic:
-            board = [
-                [1, 3, 3, 1, 3, 1, 2, 2],
-                [3, 1, 1, 2, 1, 3, 1, 3],
-                [2, 2, 1, 1, 3, 3, 2, 2],
-                [3, 1, 1, 2, 3, 2, 3, 2],
-                [3, 3, 2, 1, 1, 3, 3, 2],
-                [3, 2, 3, 1, 2, 2, 1, 3],
-                [3, 1, 3, 1, 2, 2, 2, 1],
-                [2, 2, 3, 3, 2, 3, 1, 3],
-            ]
         return board
 
     def get_board(self) -> list[list[int]]:
-        return self.board
+        """Return an immutable copy of the board to prevent external modifications"""
+        return [row.copy() for row in self.board]
 
     def set_board(self, board: list[list[int]]):
         # Check for valid dimensions
@@ -226,11 +216,11 @@ class Game:
 
     def trainable_game(self):
         layers = []
-        for color in range(NUM_COLORS):
+        for color in range(self.num_colors):
             layer = []
-            for row in range(NUM_ROWS):
+            for row in range(self.num_rows):
                 srow = []
-                for col in range(NUM_COLS):
+                for col in range(self.num_cols):
                     if self.board[row][col] == color:
                         srow.append(1)
                     else:
@@ -243,11 +233,11 @@ class Game:
 
     def trainable_game_helper(self, board):
         layers = []
-        for color in range(NUM_COLORS):
+        for color in range(self.num_colors):
             layer = []
-            for row in range(NUM_ROWS):
+            for row in range(self.num_rows):
                 srow = []
-                for col in range(NUM_COLS):
+                for col in range(self.num_cols):
                     if board[row][col] == color:
                         srow.append(1)
                     else:
@@ -259,12 +249,12 @@ class Game:
     def inverse_trainable_game(self, board):
 
         # Initialize the board with all zeros
-        new_board = np.zeros((NUM_ROWS, NUM_COLS), dtype=int)
+        new_board = np.zeros((self.num_rows, self.num_cols), dtype=int)
 
         # Iterate over colors, rows, and columns
-        for color in range(NUM_COLORS):
-            for row in range(NUM_ROWS):
-                for col in range(NUM_COLS):
+        for color in range(self.num_colors):
+            for row in range(self.num_rows):
+                for col in range(self.num_cols):
                     # If the value in the layers array is 1, set the corresponding position on the board to the current color
                     if board[color, row, col] == 1:
                         new_board[row, col] = color
@@ -274,8 +264,8 @@ class Game:
     def reward_all(self, board):
         board = self.inverse_trainable_game(board)
         rewards = []
-        for row in range(NUM_ROWS):
-            for col in range(NUM_COLS):
+        for row in range(self.num_rows):
+            for col in range(self.num_cols):
                 rewards.append(self.reward(row, col, board))
         return np.array(rewards)
 

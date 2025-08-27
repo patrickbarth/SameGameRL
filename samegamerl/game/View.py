@@ -1,28 +1,31 @@
 import pygame
 from samegamerl.game.Tile import Tile
 from samegamerl.game.game_params import (
-    NUM_ROWS,
-    NUM_COLS,
-    NUM_COLORS,
     COLORS,
     TILE_SIZE,
     GAP,
     CONTROL_GAP,
     FIELD_CONTROL_MARGIN,
-    SCREEN_HEIGHT,
-    SCREEN_WIDTH,
 )
+from samegamerl.game.game_config import GameConfig
 
 
 class View:
 
     def __init__(self, game_logic):
         self.game = game_logic
+        self.config = game_logic.config
         self.tiles = []
+        
+        # Calculate screen dimensions based on config
+        self.screen_width = GAP + TILE_SIZE * self.config.num_cols + GAP
+        self.screen_height = (
+            GAP + TILE_SIZE * self.config.num_rows + FIELD_CONTROL_MARGIN + TILE_SIZE + GAP
+        )
 
     def draw_board(self, screen, board):
-        for row in range(NUM_ROWS):
-            for col in range(NUM_COLS):
+        for row in range(self.config.num_rows):
+            for col in range(self.config.num_cols):
                 color = board[row][col]
                 self.tiles.append(
                     Tile(
@@ -59,13 +62,13 @@ class View:
             "Game over!", True, (255, 255, 255)
         )  # Text, antialiasing, and text color
         text_rect = text.get_rect(
-            center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50 - 50)
+            center=(self.screen_width // 2, self.screen_height // 2 - 50 - 50)
         )
         result_text = font.render(
             str(score[0]) + " - " + str(score[1]), True, (255, 255, 255)
         )
         result_text_rect = result_text.get_rect(
-            center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 50 - 50)
+            center=(self.screen_width // 2, self.screen_height // 2 + 50 - 50)
         )
         # text_rect = tex.Rect(screen, (255, 255, 255), (2*TILE_SIZE, 2*TILE_SIZE, 3*TILE_SIZE, 2*TILE_SIZE))
         screen.blit(text, text_rect)
