@@ -297,16 +297,21 @@ class TestReplayBufferDataIntegrity:
             (0.001, False),
         ]
 
-        for reward, done in test_cases:
+        # Use different actions so we can match them up after sampling
+        for i, (reward, done) in enumerate(test_cases):
             state = np.zeros((1, 1, 1), dtype=np.float32)
-            buffer.add(state, 0, reward, state, done)
+            buffer.add(state, i, reward, state, done)
 
         # Sample all and verify conversions
-        _, _, rewards, _, dones = buffer.sample(len(test_cases))
+        _, actions, rewards, _, dones = buffer.sample(len(test_cases))
 
-        for i, (expected_reward, expected_done) in enumerate(test_cases):
-            assert rewards[i] == expected_reward
-            assert dones[i] == (1.0 if expected_done else 0.0)
+        # Create a mapping from action to (reward, done) for verification
+        action_to_expected = {i: test_cases[i] for i in range(len(test_cases))}
+
+        for action, reward, done in zip(actions, rewards, dones):
+            expected_reward, expected_done = action_to_expected[action]
+            assert reward == expected_reward
+            assert done == (1.0 if expected_done else 0.0)
 
 
 class TestReplayBufferPerformance:
