@@ -123,3 +123,4 @@ agent = DqnAgent(
 This project uses Python 3.13 or higher. Use features available in the newer versions of python when applicable
 Don't use the typing module but use the built-in type declarations
 - install and require packages through poetry by using the shell
+- Use test-driven development and adhere to Clean Code principles

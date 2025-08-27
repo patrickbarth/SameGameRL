@@ -3,7 +3,7 @@ Shared test utilities for SameGameRL tests.
 
 Following YAGNI principles, this module contains only what is actually used:
 - Static board configurations (TEST_BOARD_CONFIGS)
-- Test models (TinyTestModel) 
+- Test models (TinyTestModel)
 - Assertion utilities for validation
 """
 
@@ -15,7 +15,10 @@ TEST_BOARD_CONFIGS = {
     "single_color_2x2": [[1, 1], [1, 1]],
     "checkerboard_2x2": [[1, 2], [2, 1]],
     "mixed_3x3": [[1, 1, 2], [2, 1, 2], [2, 2, 1]],
-    "complex_4x4": [[1, 1, 2, 3], [1, 2, 2, 3], [2, 2, 3, 3], [3, 1, 1, 2]],
+    "complex_4x4": [[1, 1, 2, 3], 
+                    [1, 2, 2, 3], 
+                    [2, 2, 3, 3], 
+                    [3, 1, 1, 2]],
     "singles_only": [[1, 2, 3], [2, 3, 1], [3, 1, 2]],
     "winning_scenario": [[1, 1], [1, 0]],  # Can win in one move
 }

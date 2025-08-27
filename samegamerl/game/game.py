@@ -12,7 +12,7 @@ class Game:
     def __init__(self, config: GameConfig = None):
         if config is None:
             config = GameFactory.default()
-        
+
         self.config = config
         self.num_rows = config.num_rows
         self.num_cols = config.num_cols

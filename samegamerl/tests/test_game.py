@@ -72,6 +72,9 @@ class TestBoardManagement:
         game.set_board(board)
         assert game.left == 3
 
+        expected_board = [[0, 0], [1, 0], [2, 1]]
+        assert game.get_board() == expected_board
+
 
 class TestMoveMechanics:
     """Test core game move mechanics"""
@@ -103,10 +106,10 @@ class TestMoveMechanics:
         game.move((0, 0))
 
         assert game.left == initial_left - 4
+
         new_board = game.get_board()
-        for row in new_board:
-            for cell in row:
-                assert cell != 1
+        expected_board = [[0, 0, 2], [0, 0, 2], [2, 2, 2]]
+        assert new_board == expected_board
 
     def test_move_removes_correct_connected_component(self):
         game = Game(GameConfig(num_rows=2, num_cols=4, num_colors=3))
@@ -116,9 +119,8 @@ class TestMoveMechanics:
 
         game.move((0, 0))
         new_board = game.get_board()
-
-        assert new_board[0][3] == 1
-        assert new_board[1][3] == 1
+        expected_board = [[0, 0, 2, 1], [2, 2, 2, 1]]
+        assert new_board == expected_board
 
 
 class TestPhysics:
@@ -132,13 +134,9 @@ class TestPhysics:
 
         # After setting board, physics should apply
         final_board = game.get_board()
+        expected_baord = [[0, 0], [1, 2], [2, 1]]
 
-        assert final_board[1][0] == 1
-        assert final_board[1][1] == 2
-        assert final_board[2][0] == 2
-        assert final_board[2][1] == 1
-        assert final_board[0][0] == 0
-        assert final_board[0][1] == 0
+        assert final_board == expected_baord
 
     def test_column_shrinking(self):
         game = Game(GameConfig(num_rows=2, num_cols=3, num_colors=3))
@@ -147,13 +145,9 @@ class TestPhysics:
         game.set_board(board)
 
         final_board = game.get_board()
+        expected_board = [[1, 2, 0], [1, 2, 0]]
 
-        assert final_board[0][0] == 1
-        assert final_board[1][0] == 1
-        assert final_board[0][1] == 2
-        assert final_board[1][1] == 2
-        assert final_board[0][2] == 0
-        assert final_board[1][2] == 0
+        assert final_board == expected_board
 
     def test_complete_physics_after_move(self):
         game = Game(GameConfig(num_rows=3, num_cols=3, num_colors=3))
@@ -161,15 +155,11 @@ class TestPhysics:
         game.set_board(board)
 
         game.move((0, 0))
-        final_board = game.get_board()
 
-        non_empty_cells = [
-            (r, c) for r in range(3) for c in range(3) if final_board[r][c] != 0
-        ]
+        expected_board = [[0, 0, 2], [0, 2, 2], [2, 2, 2]]
+        actual_board = game.get_board()
 
-        for r, c in non_empty_cells:
-            for below_r in range(r + 1, 3):
-                assert final_board[below_r][c] != 0
+        assert actual_board == expected_board
 
 
 class TestGameState:
@@ -201,13 +191,18 @@ class TestGameState:
         game.set_board(TEST_BOARD_CONFIGS["empty_2x2"])
         assert game.done()
 
+        game.set_board(TEST_BOARD_CONFIGS["single_color_2x2"])
+        assert not game.done()
+
+        game.move((0, 0))
+        assert game.done()
+
     def test_left_count_accuracy(self):
         game = Game(GameConfig(num_rows=3, num_cols=3, num_colors=3))
         board = [[1, 0, 2], [0, 1, 0], [2, 0, 1]]
         game.set_board(board)
 
-        expected_left = sum(1 for row in board for cell in row if cell != 0)
-        assert game.left == expected_left
+        assert game.left == 5
 
 
 class TestNeighborUtilities:
@@ -280,21 +275,23 @@ class TestEdgeCases:
         board = [[1, 1, 1], [1, 2, 1], [1, 1, 1]]
         game.set_board(board)
 
-        initial_left = game.left
         game.move((0, 0))
-        assert game.left < initial_left
+        assert game.left == 1
+
+        actual_board = game.get_board()
+        expected_board = [[0, 0, 0], [0, 0, 0], [2, 0, 0]]
+        assert actual_board == expected_board
 
     def test_complex_connected_component(self):
         game = Game(GameConfig(num_rows=4, num_cols=4, num_colors=4))
         board = TEST_BOARD_CONFIGS["complex_4x4"]
         game.set_board(board)
 
-        game.move((0, 0))
+        game.move((1, 1))
 
-        final_board = game.get_board()
-        remaining_ones = sum(1 for row in final_board for cell in row if cell == 1)
-
-        assert remaining_ones < 4
+        actual_board = game.get_board()
+        expected_board = [[0, 0, 0, 3], [1, 0, 0, 3], [1, 1, 3, 3], [3, 1, 1, 2]]
+        assert actual_board == expected_board
 
 
 class TestDataStructureIntegrity:
@@ -325,11 +322,9 @@ class TestDataStructureIntegrity:
         game.move((1, 1))
         final_left = game.left
 
-        final_board = game.get_board()
-        actual_remaining = sum(1 for row in final_board for cell in row if cell != 0)
-
-        assert game.left == actual_remaining
-        assert final_left <= intermediate_left <= initial_left
+        assert initial_left == 9
+        assert intermediate_left == 6
+        assert final_left == 1
 
     def test_cols_left_consistency(self):
         game = Game(GameConfig(num_rows=2, num_cols=4, num_colors=3))
@@ -343,4 +338,4 @@ class TestDataStructureIntegrity:
             if any(final_board[r][c] != 0 for r in range(game.num_rows)):
                 non_empty_cols += 1
 
-        assert game.cols_left >= non_empty_cols
+        assert game.cols_left == 2
