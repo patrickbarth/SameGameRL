@@ -25,6 +25,10 @@ During two trans-atlantic flights, my wife and I tried to solve this last level 
 
 SameGame is a tile-clearing puzzle where players click on connected groups of same-colored tiles to remove them. When tiles are removed, remaining tiles fall down due to gravity, and columns shift left to fill gaps. The game has a long history of countless implementations and rule sets (see https://en.wikipedia.org/wiki/SameGame). Most versions allow the player to collect points depending on how lage the chunks of blocks are that they remove with each turn. Clearing the whole board though, turns out to be quite complex problem (see https://erikdemaine.org/papers/Clickomania_MOVES2015/paper.pdf).
 
+<div align="center">
+  <img src="https://github.com/patrickbarth/SameGameRL/blob/master/resources/Game%20Play.gif" alt="SameGame Gameplay" width="50%">
+</div>
+
 **Why SameGame is Computationally Challenging:**
 - **Massive State Space**: A 15x15 board with 6 colors has 6^225 ≈ 10^175 possible states
 - **Sequential Dependencies**: Each move fundamentally changes the available future moves
