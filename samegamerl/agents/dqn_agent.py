@@ -73,7 +73,7 @@ class DqnAgent(BaseAgent):
         print(f"Using {self.device} device")
 
         self.model = model.to(self.device)
-        self.target_model = model.to(self.device)
+        self.target_model = deepcopy(model).to(self.device)
 
         self.replay_buffer = ReplayBuffer(capacity=5000)
         self.batch_size = batch_size
@@ -97,6 +97,7 @@ class DqnAgent(BaseAgent):
     def act(self, observation: np.ndarray) -> int:
         # choose with probability epsilon a random move
         # balancing exploration and exploitation
+        was_training = self.model.training
         self.model.eval()
 
         if random.random() < self.epsilon:
@@ -110,12 +111,16 @@ class DqnAgent(BaseAgent):
             with torch.no_grad():
                 q_values = self.model(obs_tensor)
             move = q_values.argmax().item()
-        self.model.train()
+        
+        self.model.train(was_training)
         return move
 
     def act_visualize(self, observation: np.ndarray) -> tuple[int, np.ndarray]:
         # choose with probability epsilon a random move
         # balancing exploration and exploitation
+        was_training = self.model.training
+        self.model.eval()
+        
         obs_tensor = (
             torch.tensor(observation, dtype=torch.float32)
             .unsqueeze(0)
@@ -128,6 +133,8 @@ class DqnAgent(BaseAgent):
             move = random.randint(0, self.action_space_size - 1)
         else:
             move = q_values.argmax().item()
+        
+        self.model.train(was_training)
         return move, q_values
 
     def remember(
@@ -170,8 +177,7 @@ class DqnAgent(BaseAgent):
         return loss
 
     def decrease_epsilon(self):
-        if self.epsilon > self.epsilon_min:
-            self.epsilon -= self.epsilon_decay
+        self.epsilon = max(self.epsilon_min, self.epsilon - self.epsilon_decay)
 
     def update_target_model(self):
         target_model_state_dict = self.target_model.state_dict()

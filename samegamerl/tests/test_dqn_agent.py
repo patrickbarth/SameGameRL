@@ -601,9 +601,9 @@ class TestDQNAgentIntegration:
         agent.update_target_model()
     
     def test_model_mode_switching(self):
-        model = SimpleTestModel()
+        config = GameFactory.custom(2, 2, 4)  # 2x2 board with 4 colors = 16 inputs, 4 actions
+        model = SimpleTestModel(input_size=16, output_size=4)
 
-        config = GameFactory.default()
         agent = DqnAgent(
             model=model,
             config=config,
@@ -752,10 +752,9 @@ class TestDQNAgentCompatibility:
     def test_base_agent_interface(self):
         from samegamerl.agents.base_agent import BaseAgent
         
-        model = SimpleTestModel()
-
+        config = GameFactory.custom(2, 2, 4)  # 2x2 board with 4 colors = 16 inputs, 4 actions
+        model = SimpleTestModel(input_size=16, output_size=4)
         
-        config = GameFactory.default()
         agent = DqnAgent(
             model=model,
             config=config,
@@ -790,9 +789,9 @@ class TestDQNAgentCompatibility:
     
     def test_method_signatures_match_base_class(self):
         """Ensure method signatures match base class requirements"""
-        model = SimpleTestModel()
+        config = GameFactory.custom(2, 2, 4)  # 2x2 board with 4 colors = 16 inputs, 4 actions
+        model = SimpleTestModel(input_size=16, output_size=4)
 
-        config = GameFactory.default()
         agent = DqnAgent(
             model=model,
             config=config,
