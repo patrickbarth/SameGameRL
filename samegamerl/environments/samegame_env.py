@@ -48,6 +48,12 @@ class SameGameEnv:
     def compute_reward(
         self, prev_left, cur_left, prev_singles, cur_singles, _action
     ) -> float:
+        """Multi-component reward function balancing progress and completion.
+        
+        Prioritizes reducing isolated singles over raw tile removal for better
+        long-term strategy development. Large completion bonus incentivizes
+        fully clearing the board.
+        """
         if self.game.left == 0:
             return float(5)
         if prev_singles == prev_left:
@@ -59,18 +65,17 @@ class SameGameEnv:
         single = prev_singles - cur_singles
         removed = prev_left - cur_left
         total = self.num_rows * self.num_cols
-        # return removed / prev_left
-        # return removed / 10
+        
         if single > 0:
             return (single / prev_left) * 3
         else:
             return removed / (10 * total)
-        # return single * ((total - prev_left) / total)
 
     def get_observation(self) -> np.ndarray:
         return self._trainable_game(self.game.get_board())
 
     def _trainable_game(self, board: None | list[list[int]]) -> np.ndarray:
+        """Convert board to one-hot encoded tensor for CNN input."""
         if not board:
             board = self.game.get_board()
         board_np = np.array(board)
@@ -82,14 +87,12 @@ class SameGameEnv:
         return obs
 
     def _reverse_trainable_game(self, board: np.ndarray) -> list[list[int]]:
-        # Initialize the board with all zeros (proper deep copy)
+        """Convert one-hot encoded tensor back to integer board representation."""
         new_board = [[0 for _ in range(self.num_cols)] for _ in range(self.num_rows)]
 
-        # Iterate over colors, rows, and columns
         for color in range(self.num_colors):
             for row in range(self.num_rows):
                 for col in range(self.num_cols):
-                    # If the value in the layers array is 1, set the corresponding position on the board to the current color
                     if board[color, row, col] == 1:
                         new_board[row][col] = color
 

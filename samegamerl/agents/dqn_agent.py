@@ -14,51 +14,27 @@ from samegamerl.game.game_config import GameConfig
 from samegamerl.agents.replay_buffer import ReplayBuffer
 
 
-"""
-class NeuralNetwork(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.conv_stack = nn.Sequential(
-            nn.Conv2d(NUM_COLORS, 256, 3),
-            nn.ReLU(),
-            # nn.MaxPool2d((2,2), (2,2)),
-            nn.Conv2d(256, 128, 3),
-            nn.ReLU(),
-            # nn.MaxPool2d((2,2), (2,2)),
-            nn.Conv2d(128, 64, 3),
-            nn.ReLU()
-        )
-        self.flatten = nn.Flatten()
-        self.linear_relu_stack = nn.Sequential(
-            nn.Linear((NUM_ROWS-2-2-2)*(NUM_COLS-2-2-2)*64, 512),
-            nn.ReLU(),
-            nn.Linear(512, 256),
-            nn.ReLU(),
-            nn.Linear(256, NUM_ROWS*NUM_COLS)
-        )
-
-    def forward(self, x):
-        x = self.conv_stack(x)
-        x = self.flatten(x)
-        logits = self.linear_relu_stack(x)
-        return logits
-"""
 
 
 class DqnAgent(BaseAgent):
+    """Deep Q-Network agent implementing DQN with experience replay and target networks.
+    
+    Supports epsilon-greedy exploration with decay scheduling and configurable
+    hyperparameters for systematic experimentation across game variants.
+    """
 
     def __init__(
         self,
         model: nn.Module,
         config: GameConfig,
-        model_name: str,  # used for saving the model
+        model_name: str,
         learning_rate: float,
-        initial_epsilon: float,  # determines how random the bot chooses it's actions
-        epsilon_decay: float,  # how quickly the bot moves from exploration to exploitation
-        final_epsilon: float,  # minimum rate of exploration
-        batch_size: int = 128,  # number of game moves used for each training episode
-        gamma: float = 0.95,  # how much future expected rewards count towards an action
-        tau: float = 0.5,  # how quickly the target model adapts to the model
+        initial_epsilon: float,
+        epsilon_decay: float,
+        final_epsilon: float,
+        batch_size: int = 128,
+        gamma: float = 0.95,
+        tau: float = 0.5,
     ):
         # Store configuration
         self.config = config
@@ -95,8 +71,7 @@ class DqnAgent(BaseAgent):
         self.opt = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
     def act(self, observation: np.ndarray) -> int:
-        # choose with probability epsilon a random move
-        # balancing exploration and exploitation
+        """Select action using epsilon-greedy policy with Q-value estimation."""
         was_training = self.model.training
         self.model.eval()
 
@@ -116,8 +91,7 @@ class DqnAgent(BaseAgent):
         return move
 
     def act_visualize(self, observation: np.ndarray) -> tuple[int, np.ndarray]:
-        # choose with probability epsilon a random move
-        # balancing exploration and exploitation
+        """Select action and return Q-values for visualization purposes."""
         was_training = self.model.training
         self.model.eval()
         
@@ -148,6 +122,7 @@ class DqnAgent(BaseAgent):
         self.replay_buffer.add(obs, action, reward, next_obs, done)
 
     def learn(self) -> float:
+        """Perform one gradient step on a batch of experiences from replay buffer."""
 
         if len(self.replay_buffer) < self.batch_size:
             return 0
@@ -180,6 +155,7 @@ class DqnAgent(BaseAgent):
         self.epsilon = max(self.epsilon_min, self.epsilon - self.epsilon_decay)
 
     def update_target_model(self):
+        """Soft update target network using polyak averaging with tau parameter."""
         target_model_state_dict = self.target_model.state_dict()
         model_state_dict = self.model.state_dict()
         for key in model_state_dict:
