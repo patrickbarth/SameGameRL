@@ -79,6 +79,8 @@ This project follows **Test-Driven Development (TDD)** principles with clean, ma
 
 The codebase prioritizes **readability and maintainability** over clever optimizations, making it easy to understand, debug, and extend for future experiments.
 
+**Development Approach:** This project was developed using **Claude Code**. While AI helped with code generation, refactoring, testing, and documentation, all architectural decisions, algorithm selection, and problem-solving approaches were human-driven.
+
 ## Key Experiments
 
 The core experimental parameters that significantly affect training performance are:
