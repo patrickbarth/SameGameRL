@@ -2,6 +2,36 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Commit Message Guidelines
+
+- **NEVER include the Claude Code attribution footer in commit messages**
+- Focus on clear, descriptive commit messages that explain the changes
+- Follow the existing project commit message style (see git log for examples)
+
+## Test-Driven Development Workflow
+
+**For all new features and bug fixes, follow this TDD process:**
+
+1. **Development Phase** (multiple WIP commits):
+   ```bash
+   git commit -m "WIP: Add failing test for [feature/fix]"
+   git commit -m "WIP: Implement [feature/fix]" 
+   git commit -m "WIP: Refactor [improvement]"
+   ```
+
+2. **Before Sharing** (clean up with interactive rebase):
+   ```bash
+   git rebase -i HEAD~N  # Squash WIP commits into logical units
+   git commit -m "Add [feature] with comprehensive tests"
+   ```
+
+**Key Principles:**
+- Always write failing tests first (red)
+- Implement minimal code to pass tests (green) 
+- Refactor while keeping tests green
+- Each final commit should pass all tests (bisectable history)
+- Use WIP commits during development, clean commits for sharing
+
 ## Development Commands
 
 ### Testing
@@ -123,4 +153,3 @@ This project uses Python 3.13 or higher. Use features available in the newer ver
 Don't use the typing module but use the built-in type declarations
 - install and require packages through poetry by using the shell
 - Use test-driven development and adhere to Clean Code principles
-- Don't include the Claude Code attribution footer in commit messages
