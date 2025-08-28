@@ -10,7 +10,7 @@ class TestEnvironmentInitialization:
 
     def test_default_initialization(self):
         env = SameGameEnv()
-        assert env.num_colors == 3
+        assert env.num_colors == 4
         assert env.num_rows == 8
         assert env.num_cols == 8
         assert not env.done

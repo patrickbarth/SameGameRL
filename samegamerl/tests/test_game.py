@@ -12,7 +12,7 @@ class TestGameInitialization:
         game = Game(GameFactory.default())
         assert game.num_rows == 8
         assert game.num_cols == 8
-        assert game.num_colors == 3
+        assert game.num_colors == 4
         assert game.left == 64  # 8 * 8
         assert game.cols_left == 8
         assert not game.done()
