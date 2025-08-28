@@ -2,6 +2,9 @@
 samegamerl/models
 samegamerl/agents/deprecated
 
+# Experiment planning and research notes
+samegamerl/experiments/experiment_ideas.md
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
