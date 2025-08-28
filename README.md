@@ -7,57 +7,108 @@
 [![Code Style](https://img.shields.io/badge/code%20style-modern%20python-blue)](https://docs.python.org/3/)
 [![AI Assisted](https://img.shields.io/badge/AI%20Assisted-Claude%20Code-purple)](https://claude.ai/code)
 
-A sophisticated Deep Q-Network (DQN) implementation for solving the SameGame puzzle, showcasing modern reinforcement learning techniques with clean, scalable architecture.
+## Overview
 
-## 🎯 Project Overview
+This project trains a reinforcement learning agent to completely clear SameGame puzzle boards using Deep Q-Networks (DQN).
 
-SameGameRL demonstrates advanced RL concepts through a complete end-to-end system:
+## Learning Goals
 
-- **Custom OpenAI Gym Environment** with configurable board dimensions (5x5 to 15x15) and color counts
-- **Deep Q-Network Agent** with experience replay, target networks, and epsilon-greedy exploration
-- **Modular Architecture** supporting multiple model architectures (CNN, fully-connected)
-- **Configuration-Driven Design** enabling systematic experimentation across game variants
-- **Comprehensive Testing** with 90%+ code coverage across all components
+This project is a Breakable Toy (see https://ilango.hashnode.dev/learning-by-building-breakable-toys). The primary purpose of this project is to deepen my understanding and intuition about **Reinforcement Learning** and **DQN** in particular, while practicing to write clean, maintainable code and build scalable ML infrastructure.
 
-### Technical Achievements
+## Background Story
 
-- **Scalable Game Engine**: Support for boards from 5x5 (2 colors) to 15x15 (6 colors)
-- **Advanced RL Techniques**: Experience replay buffer, target network updates, epsilon decay
-- **Multiple Model Architectures**: Convolutional and fully-connected DQN implementations
-- **Smart Reward Design**: Optimized for reducing singles count and board clearing
-- **Production-Ready Code**: Type hints, comprehensive tests, modern Python 3.13+ features
+The inspiration for this project came from **Lufthansa's in-flight entertainment system**, which features a SameGame-style puzzle with multiple difficulty levels. The final challenge is a **15x15 board with 6 colors** that must be completely cleared.
 
-## 🏗️ Architecture
+During two trans-atlantic flights, my wife and I tried to solve this last level counteless times, but couldn't solve it. So, I decided to start this project and leverage reinforcement learning to beat this challenge.
 
-```
-samegamerl/
-├── game/           # Core SameGame logic with configurable parameters
-├── environments/   # OpenAI Gym-compatible RL environment
-├── agents/         # DQN implementation with replay buffer
-├── experiments/    # Model architectures and training configurations  
-├── training/       # Training pipeline with evaluation metrics
-├── evaluation/     # Model validation and visualization tools
-└── tests/          # Comprehensive test suite (90%+ coverage)
-```
+## What is SameGame?
 
-### Key Components
+SameGame is a tile-clearing puzzle where players click on connected groups of same-colored tiles to remove them. When tiles are removed, remaining tiles fall down due to gravity, and columns shift left to fill gaps. The game has a long history of countless implementations and rule sets (see https://en.wikipedia.org/wiki/SameGame). Most versions allow the player to collect points depending on how lage the chunks of blocks are that they remove with each turn. Clearing the whole board though, turns out to be quite complex problem (see https://erikdemaine.org/papers/Clickomania_MOVES2015/paper.pdf).
 
-**Game Engine (`samegamerl/game/`)**
-- Configurable board dimensions and color counts via `GameConfig`
-- Efficient tile removal and gravity simulation
-- Factory pattern for standard game sizes (small/medium/large)
+**Why SameGame is Computationally Challenging:**
+- **Massive State Space**: A 15x15 board with 6 colors has 6^225 ≈ 10^175 possible states
+- **Sequential Dependencies**: Each move fundamentally changes the available future moves
+- **Sparse Rewards**: There are no clear valuable intermediate goals other than clearing the board
+- **Long-term Planning**: Optimal play requires considering consequences 50+ moves ahead
+- **No Obvious Heuristics**: Unlike chess, there are no clear piece values or positional advantages
 
-**RL Environment (`samegamerl/environments/`)**
-- OpenAI Gym-style interface with one-hot encoded state representation
-- Shape: `[num_colors, num_rows, num_cols]` for CNN compatibility
-- Reward function balancing progress and completion incentives
+## What is DQN?
 
-**DQN Agent (`samegamerl/agents/`)**
-- Experience replay buffer with configurable capacity
-- Target network updates for training stability
-- Epsilon-greedy exploration with decay scheduling
+Deep Q-Networks (DQN) combine Q-learning with deep neural networks to handle large state spaces that would be impossible for traditional tabular methods. DQN learns to approximate the optimal Q-function Q*(s,a), which represents the maximum expected future reward from taking action 'a' in state 's'.
 
-## 🚀 Quick Start
+## Project Structure
+
+The project is organized into these components:
+
+**Game Engine** (`samegamerl/game/`) - Pure game logic independent of RL concerns. Can simulate games with any size of boards or number of colors and provides useful helper functions, e.g. to calculate the number of isolated cells left on the board. Includes also an interactive visualization of the game, which can be used to actually play the game or visualize the agent playing the game.
+
+**RL Environment** (`samegamerl/environments/`) - Bridges the game engine and RL algorithms using OpenAI Gym-style interface. Converts game states to neural network-friendly one-hot encoded tensors and implements reward function.
+
+**Agents** (`samegamerl/agents/`) - DQN implementation with experience replay buffer and modifiable hyper-parameters. Modular design allows plugging in different neural network architectures.
+
+**Training Pipeline** (`samegamerl/training/`) - Orchestrates the learning process with configurable epochs, evaluation periods, and model checkpointing. Includes epsilon decay scheduling and performance monitoring.
+
+**Evaluation** (`samegamerl/evaluation/`) - Tools for evaluating the agent and visualizing training progress. Includes different ways to meassure an agents performance.
+
+**Experiments** (`samegamerl/experiments/`) - Self-contained experiments in Jupyter Notebooks combining model architectures, hyperparameters, and training configurations. Enables systematic comparison of different approaches.
+
+
+## Technical Infrastructure
+
+**Core Technologies:**
+- **Python 3.13+**: The whole project is written in Python and uses newer features like the built-in type hinting
+- **PyTorch**: Deep learning framework for neural network implementation
+- **Pygame**: for simulating and visualizing the game
+
+**Development Tools:**
+- **Poetry**: dependency management with lock files
+- **pytest**: Comprehensive test suite with 90%+ code coverage
+- **GitHub Actions**: Automated CI/CD testing on every commit
+
+
+## Code Style and Development Philosophy
+
+This project follows **Test-Driven Development (TDD)** principles with clean, maintainable code that can be easily extended and modified. The focus is on enabling easy experimentation and clear visualization of training progress.
+
+**Key Principles:**
+- **Write failing tests first**, implement minimal code to pass, then refactor
+- **Self-documenting code** with descriptive names that eliminate need for comments
+- **Type safety** throughout with comprehensive type hints
+- **Modular design** allowing independent testing and modification of components
+- **Configuration over constants** for maximum experimental flexibility
+
+The codebase prioritizes **readability and maintainability** over clever optimizations, making it easy to understand, debug, and extend for future experiments.
+
+## Key Experiments
+
+The core experimental parameters that significantly affect training performance are:
+
+**Neural Network Architecture:**
+Combinations of convolutional layers and fully-connected layers as well as balancing Network depth vs width.
+
+**Reward Function Design:**
+Ideally the agent would only be rewarded for clearing the board and punished if left with a board of only isolated cells, but practically it is really hard to clear the board, even for relatively simple setups (see above). So, we need to give small rewards along the way that are hopefully helping the agent at some point to clear the board. On the other side these rewards need to be small enough for the agent to clear the board and not settle for less optimal solutions. So, the basic idea is to build a reward function based on 
+- **Tile removal rewards**: Immediate feedback for progress
+- **Singles penalty**: Discourage creating isolated tiles
+- **Completion bonus**: Large reward for clearing entire board
+and make sure to properly balance these difference aspects.
+
+**DQN Hyperparameters:**
+DQN appears to not be very stable, therefore these hyperparameters need to be carefully tuned in order to ensure fast-learning without getting stuck at sub-optimal strategies.
+- **Learning rate (α)**: Controls gradient descent step size
+- **Discount factor (γ)**: How much agent values future rewards
+- **Epsilon decay**: Exploration vs exploitation schedule
+- **Replay buffer size**: Memory capacity for experience storage
+- **Target network update frequency**: Training stability parameter
+- **Batch size**: Number of experiences per training step
+
+
+Through different experiments in the `/experiments` directory these parameters are carefully tuned and compared.
+
+
+## Quick Start
+
+> **Note**: This section is currently under review and needs testing/verification before the project is finalized.
 
 ### Installation
 
@@ -66,7 +117,7 @@ samegamerl/
 git clone https://github.com/patrickbarth/SameGameRL.git
 cd SameGameRL
 
-# Install dependencies
+# Install dependencies with Poetry (recommended)
 poetry install
 poetry shell
 
@@ -112,26 +163,7 @@ pytest samegamerl/tests/          # Full test suite
 pytest samegamerl/tests/test_dqn_agent.py  # Specific component
 ```
 
-## 📊 Performance Results
-
-### Model Comparison (8x8 Board, 3 Colors)
-
-| Architecture | Avg Score | Games Cleared | Training Time |
-|--------------|-----------|---------------|---------------|
-| CNN (3-layer) | 89.4 ± 12.3 | 23% | 2.3 hours |
-| Pyramid Dense | 76.8 ± 18.1 | 15% | 1.8 hours |
-| Linear | 52.1 ± 22.4 | 8% | 1.2 hours |
-
-### Scalability Analysis
-
-| Board Size | Colors | State Space | CNN Performance |
-|------------|--------|-------------|-----------------|
-| 5x5 | 2 | 2^25 | 94.2 ± 8.1 |
-| 8x8 | 3 | 3^64 | 89.4 ± 12.3 |
-| 10x10 | 4 | 4^100 | 72.1 ± 15.7 |
-| 15x15 | 6 | 6^225 | 58.3 ± 19.4 |
-
-## 🎮 Interactive Demo
+### Interactive Demo
 
 ```bash
 # Launch pygame interface
@@ -145,68 +177,34 @@ visualize_agent('models/CNN.pth', GameFactory.medium())
 "
 ```
 
-## 🧪 Experimentation
+## License
 
-The project supports systematic experimentation through configuration-driven design:
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details. You are free to use, modify, and distribute this code for both personal and commercial purposes.
 
-```python
-# Custom game configurations
-from samegamerl.game.game_config import GameFactory
+## Future Improvements
 
-small_game = GameFactory.small()      # 5x5, 2 colors
-medium_game = GameFactory.medium()    # 8x8, 3 colors  
-large_game = GameFactory.large()      # 15x15, 6 colors
-custom_game = GameFactory.custom(12, 12, 5)  # Custom dimensions
-```
+As this is an ongoing project and I still did not manage to train an agent to reliably empty the original 15x15 board, I plan to implement the following improvements in the future:
 
-## 📈 Development Approach & Tools
+### 🚀 Performance Optimization
+- **Separate Training and Simulation**: Currently, training and game simulation run sequentially, with simulation being the bottleneck. Moving to separate optimized containers for training, inference, and game simulation would enable much faster and more efficient training.
 
-This project was developed using modern AI-assisted development practices with **Claude Code**, focusing on:
+### 🗄️ Database Integration
+- **Experience and Model State Storage**: RL training is highly unstable and model performance sometimes decreases during training. A database would allow storing different model checkpoints throughout training for comparison and rollback.
+- **Hard Game Repository**: Create a curated set of challenging game states that the agent struggles with, focusing training on these difficult scenarios for targeted improvement.
 
-- **Architectural Design**: Human-driven decisions on DQN implementation, reward function design, and modular system architecture
-- **Algorithm Selection**: Independent analysis of RL approaches, settling on DQN for discrete action space
-- **Performance Optimization**: Manual debugging of training convergence, hyperparameter tuning, and model comparison
-- **Code Quality**: Comprehensive test-driven development with 90%+ coverage across all components
+### 📊 Enhanced Evaluation and Visualization
+- **Streamlined Metrics**: Currently measuring cells remaining, training loss, average reward, and isolated cell count. Need unified comparison framework for easier agent evaluation.
+- **Advanced Visualization**: 
+  - Watch multiple agents play simultaneously
+  - Compare different agent versions on identical games
+  - Real-time training progress visualization
+- **Training History Preservation**: Store and compare results across multiple training sessions instead of losing progress between runs.
 
-**AI Assistance**: Used for code generation, refactoring, and documentation while maintaining full ownership of technical decisions, system design, and problem-solving approach.
+### 🎓 Curriculum Learning
+- **Progressive Gamma Scaling**: Start training with γ=0 (no future rewards) to learn basic reward function, then gradually increase gamma so the agent learns to plan further ahead.
 
-## 🔧 Technical Specifications
+### 🔄 Multi-Scale Training
+- **Transfer Learning**: Train agents on 15x15 boards but enable them to play smaller board sizes effectively, leveraging learned spatial patterns across different scales.
 
-- **Python Version**: 3.13+ (utilizing modern type hints and features)
-- **Dependencies**: PyTorch, OpenAI Gym, Pygame, NumPy, Poetry
-- **Testing**: pytest with comprehensive coverage
-- **Code Style**: Type hints, clean architecture, minimal documentation approach
-- **Package Management**: Poetry with lock file for reproducible environments
-
-## 📁 Pre-trained Models
-
-The `models/` directory contains trained agents for different configurations:
-
-- `CNN.pth` - Convolutional model for 8x8 board
-- `pyramid.pth` - Fully-connected model with pyramid architecture  
-- Various experimental models in `Before_Color_Bug/` directory
-
-## 🤝 Contributing
-
-This project demonstrates production-ready development practices:
-
-1. **Test-Driven Development**: Write failing tests first, implement features, refactor
-2. **Clean Commits**: Use WIP commits during development, squash before sharing
-3. **Type Safety**: Comprehensive type hints throughout codebase
-4. **Documentation**: Self-documenting code with minimal but valuable docstrings
-
-## 📜 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🎯 Key Learning Outcomes
-
-- **Deep Reinforcement Learning**: Practical implementation of DQN with experience replay
-- **Software Architecture**: Modular, testable, and extensible system design
-- **Python Engineering**: Modern Python practices, type safety, and testing methodologies
-- **Configuration Management**: Flexible system supporting multiple experimental setups
-- **Performance Analysis**: Systematic model comparison and scalability evaluation
-
----
-
-*This project showcases practical reinforcement learning implementation with production-quality software engineering practices.*
+### 🧠 Advanced RL Techniques
+- **Algorithm Diversity**: Implement agents using different RL approaches (Actor-Critic, PPO, Rainbow DQN).
