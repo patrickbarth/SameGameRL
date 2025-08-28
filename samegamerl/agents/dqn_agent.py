@@ -14,11 +14,9 @@ from samegamerl.game.game_config import GameConfig
 from samegamerl.agents.replay_buffer import ReplayBuffer
 
 
-
-
 class DqnAgent(BaseAgent):
     """Deep Q-Network agent implementing DQN with experience replay and target networks.
-    
+
     Supports epsilon-greedy exploration with decay scheduling and configurable
     hyperparameters for systematic experimentation across game variants.
     """
@@ -86,7 +84,7 @@ class DqnAgent(BaseAgent):
             with torch.no_grad():
                 q_values = self.model(obs_tensor)
             move = q_values.argmax().item()
-        
+
         self.model.train(was_training)
         return move
 
@@ -94,20 +92,18 @@ class DqnAgent(BaseAgent):
         """Select action and return Q-values for visualization purposes."""
         was_training = self.model.training
         self.model.eval()
-        
+
         obs_tensor = (
-            torch.tensor(observation, dtype=torch.float32)
-            .unsqueeze(0)
-            .to(self.device)
+            torch.tensor(observation, dtype=torch.float32).unsqueeze(0).to(self.device)
         )
         with torch.no_grad():
             q_values = self.model(obs_tensor)
-            
+
         if random.random() < self.epsilon:
             move = random.randint(0, self.action_space_size - 1)
         else:
             move = q_values.argmax().item()
-        
+
         self.model.train(was_training)
         return move, q_values
 
@@ -189,130 +185,3 @@ class DqnAgent(BaseAgent):
 
         self.model.train()
         self.target_model.eval()
-
-
-"""
-    def reset_model(self):
-        self.device = (
-            "cuda"
-            if torch.cuda.is_available()
-            # else "mps"
-            # if torch.backends.mps.is_available()
-            else "cpu"
-        )
-        print(f"Using {self.device} device")
-
-        self.model = NeuralNetwork().to(self.device)
-        self.target_model = NeuralNetwork().to(self.device)
-
-        self.criterion
-        self.opt
-
-        # self.criterion = torch.nn.MSELoss()
-        # self.opt = torch.optim.Adam(self.model.parameters(), lr=0.000001)
-        # self.scheduler = StepLR(self.opt, step_size=10000, gamma=0.5)
-"""
-
-
-"""
-    def train_model(self, number_of_games):
-        for i in range(number_of_games):
-            self.train_game()
-
-        if len(self.memory) > self.batch_size:
-            self.replay(self.batch_size)
-
-        self.update_target_model()
-        self.decrease_epsilon()
-
-    def train_game(self):
-        game = Game()
-        for i in range(ceil(self.action_space_size/3)):
-            board = deepcopy(game.trainable_game())
-            move = self.play(game)
-            next_board, reward, done = game.rl_move(move)
-            self.remember(board, move, reward, deepcopy(next_board), done)
-            if done:
-                self.won += 1
-                break
-
-    def play(self, game: Game) -> int:
-        # choose with probability epsilon a random move
-        # balancing exploration and exploitation
-        if random.random() < self.epsilon:
-            move = random.randint(0, self.action_space_size-1)
-        else:
-            with torch.no_grad():
-                move = int(torch.argmax(self.model(torch.from_numpy(game.trainable_game()).float().unsqueeze(0))))
-        return move
-
-    # same as play but with very smallest epsilon
-    def play_test(self, game: Game) -> int:
-        # choose with probability epsilon a random move
-        # balancing exploration and exploitation
-        if random.random() < self.epsilon_min:
-            move = random.randint(0, self.action_space_size-1)
-        else:
-            with torch.no_grad():
-                move = int(torch.argmax(self.model(torch.from_numpy(game.trainable_game()).float().unsqueeze(0))))
-        return move
-
-    def play_test_text(self, game):
-        # choose with probability epsilon a random move
-        # balancing exploration and exploitation
-        if random.random() < self.epsilon_min:
-            move = random.randint(0, self.action_space_size-1)
-        else:
-            with torch.no_grad():
-                move = int(torch.argmax(self.model(torch.from_numpy(game.trainable_game()).float().unsqueeze(0))))
-        with torch.no_grad():
-            values = self.model(torch.from_numpy(game.trainable_game()).float().unsqueeze(0)).numpy()
-        return move, values
-
-    def remember(self, board, move, reward, next_board, done):
-        self.memory.append((board, move, reward, next_board, done))
-        while len(self.memory) > self.memory_size:
-            rand_index = random.randint(0, len(self.memory) - 1)
-            self.memory.pop(rand_index)
-
-    def replay(self, batch_size):
-        batch = random.sample(self.memory, batch_size)
-
-        for i in range(1):
-            pred_batch = []
-            target_batch = []
-
-            for board, move, reward, next_board, done in batch:
-                pred_reward = self.model(torch.from_numpy(board).float().unsqueeze(0))
-                target_reward = pred_reward.clone().detach()
-
-                with torch.no_grad():
-                    if not done:
-                        target = (reward + self.gamma * torch.max(self.target_model(torch.from_numpy(next_board).float().unsqueeze(0))))
-                    else:
-                        target = reward
-                    target_reward[0][move] = target
-
-                pred_batch.append(pred_reward)
-                target_batch.append(target_reward)
-
-            pred_batch = torch.cat(pred_batch)
-            target_batch = torch.cat(target_batch)
-
-            self.opt.zero_grad()
-            loss = self.criterion(pred_batch, target_batch)
-            loss.backward()
-            self.opt.step()
-        # self.scheduler.step()
-        # print(self.scheduler.get_last_lr())
-
-
-
-# agent = DQNBot()
-# agent.model_name = "TestModel"
-# agent.create_model()
-# game = GameLogic()
-# game.move(2)
-# print(agent.model(torch.from_numpy(game.trainable_game()).float().unsqueeze(0)))
-# print(agent.model(torch.from_numpy(np.array([game.trainable_game(), game.trainable_game()])).float()))
-"""

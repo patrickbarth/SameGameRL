@@ -16,11 +16,15 @@ class View:
         self.game = game_logic
         self.config = game_logic.config
         self.tiles = []
-        
+
         # Calculate screen dimensions based on config
         self.screen_width = GAP + TILE_SIZE * self.config.num_cols + GAP
         self.screen_height = (
-            GAP + TILE_SIZE * self.config.num_rows + FIELD_CONTROL_MARGIN + TILE_SIZE + GAP
+            GAP
+            + TILE_SIZE * self.config.num_rows
+            + FIELD_CONTROL_MARGIN
+            + TILE_SIZE
+            + GAP
         )
 
     def draw_board(self, screen, board):
