@@ -118,7 +118,7 @@ python samegamerl/main.py  # Launch interactive pygame interface
 The system supports multiple game configurations through GameFactory:
 - **Small**: 5x5 board with 2 colors - `GameFactory.small()`
 - **Medium**: 8x8 board with 3 colors - `GameFactory.medium()` (default)
-- **Large**: 15x15 board with 6 colors - `GameFactory.large()`
+- **Large**: 15x15 board with 5 colors - `GameFactory.large()`
 - **Custom**: Any dimensions - `GameFactory.custom(rows, cols, colors)`
 
 ### Game Mechanics

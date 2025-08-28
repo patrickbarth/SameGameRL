@@ -1,6 +1,6 @@
 # View constants
 # Note: Game dimensions (NUM_ROWS, NUM_COLS, NUM_COLORS) have been moved to GameConfig
-# Use GameFactory.small(), GameFactory.medium(), GameFactory.large() for standard configurations
+# Use GameFactory.small() (2 colors), GameFactory.medium() (3 colors), GameFactory.large() (5 colors)
 COLORS = [
     (255, 255, 255),  # White
     (252, 15, 15),  # Red
