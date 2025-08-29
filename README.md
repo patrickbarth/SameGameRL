@@ -23,7 +23,7 @@ During two trans-atlantic flights, my wife and I tried to solve this last level 
 
 ## What is SameGame?
 
-SameGame is a tile-clearing puzzle where players click on connected groups of same-colored tiles to remove them. When tiles are removed, remaining tiles fall down due to gravity, and columns shift left to fill gaps. The game has a long history of countless implementations and rule sets (see https://en.wikipedia.org/wiki/SameGame). Most versions allow the player to collect points depending on how lage the chunks of blocks are that they remove with each turn. Clearing the whole board though, turns out to be quite complex problem (see https://erikdemaine.org/papers/Clickomania_MOVES2015/paper.pdf).
+SameGame is a tile-clearing puzzle where players click on connected groups of same-colored tiles to remove them. When tiles are removed, remaining tiles fall down, and columns shift left to fill gaps. The game has a long history of countless implementations and rule sets (see https://en.wikipedia.org/wiki/SameGame). Most versions allow the player to collect points depending on how lage the chunks of blocks are that they remove with each turn. Clearing the whole board though, turns out to be quite complex problem (see https://erikdemaine.org/papers/Clickomania_MOVES2015/paper.pdf).
 
 <div align="center">
   <img src="https://github.com/patrickbarth/SameGameRL/blob/master/resources/Game%20Play.gif" alt="SameGame Gameplay" width="50%">
@@ -38,7 +38,7 @@ SameGame is a tile-clearing puzzle where players click on connected groups of sa
 
 ## What is DQN?
 
-Deep Q-Networks (DQN) combine Q-learning with deep neural networks to handle large state spaces that would be impossible for traditional tabular methods. DQN learns to approximate the optimal Q-function Q*(s,a), which represents the maximum expected future reward from taking action 'a' in state 's'.
+In a game where a player has a discrete amount of actions, Q-Learning is a method that tries to find the optimal solution by calculating the maximum future reward - or Q value Q*(s,a) which describes the maimum future reward from taking action 'a' in state 's'. Deep Q-Networks (DQN) combine Q-learning with deep neural networks to handle large state spaces that would be impossible to handle for traditional tabular methods. DQN learns to approximate the optimal Q-function Q*(s,a), by playing thousands of games and learning from the results.
 
 ## Project Structure
 

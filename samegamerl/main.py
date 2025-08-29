@@ -15,7 +15,7 @@ pygame.init()
 config = GameFactory.medium()
 
 # starting the game_logic
-game = Game(config)  # screen)
+game = Game(config)
 
 view = View(game)
 
