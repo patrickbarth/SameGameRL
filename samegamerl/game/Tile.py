@@ -25,7 +25,9 @@ class Tile:
         pygame.draw.rect(screen, COLORS[self.color], self.rect)
         font = pygame.font.Font(None, 24)
         text = font.render(
-            self.first_n_digits(values[0][self.row * NUM_COLS + self.col], 5),
+            self.first_n_digits(
+                values[0][self.row * self.game.config.num_cols + self.col], 5
+            ),
             True,
             (170, 170, 170),
         )

@@ -30,3 +30,7 @@ addopts = [
 [tool.poetry]
 name = "samegamerl"
 packages = [{ include = "samegamerl" }]
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.30.1"
+
