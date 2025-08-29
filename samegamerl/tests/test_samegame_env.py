@@ -270,8 +270,8 @@ class TestRewardFunction:
         """Test that default reward parameters work correctly"""
         env = SameGameEnv()
 
-        assert env.completion_reward == 100.0
-        assert env.partial_completion_base == 10.0
+        assert env.completion_reward == 10.0
+        assert env.partial_completion_base == 1.0
         assert env.invalid_move_penalty == -0.01
 
     def test_custom_reward_parameters(self):

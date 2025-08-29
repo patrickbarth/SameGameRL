@@ -48,7 +48,7 @@ class TestDQNAgentInitialization:
         assert agent.epsilon_min == 0.1
         assert agent.batch_size == 128  # default value
         assert agent.gamma == 0.95  # default value
-        assert agent.tau == 0.5  # default value
+        assert agent.tau == 0.005  # improved default value
     
     def test_custom_hyperparameters(self):
         model = SimpleTestModel()
@@ -144,7 +144,7 @@ class TestDQNAgentInitialization:
         )
         
         assert isinstance(agent.replay_buffer, ReplayBuffer)
-        assert agent.replay_buffer.buffer.maxlen == 5000  # default capacity
+        assert agent.replay_buffer.buffer.maxlen == 50000  # improved default capacity
 
 
 class TestDQNAgentActionSelection:
