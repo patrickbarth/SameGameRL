@@ -4,6 +4,7 @@ samegamerl/agents/deprecated
 
 # Experiment planning and research notes
 samegamerl/experiments/experiment_ideas.md
+samegamerl/experiments/reward_function_research.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

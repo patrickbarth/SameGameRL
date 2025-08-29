@@ -5,7 +5,10 @@ from samegamerl.game.game_config import GameConfig, GameFactory
 
 
 class SameGameEnv:
-    def __init__(self, config: GameConfig | None = None):
+    def __init__(self, config: GameConfig | None = None, 
+                 completion_reward: float = 100.0,
+                 partial_completion_base: float = 10.0,
+                 invalid_move_penalty: float = -0.01):
         if config is None:
             config = GameFactory.default()
 
@@ -13,6 +16,12 @@ class SameGameEnv:
         self.num_colors = config.num_colors
         self.num_rows = config.num_rows
         self.num_cols = config.num_cols
+        
+        # Reward function parameters
+        self.completion_reward = completion_reward
+        self.partial_completion_base = partial_completion_base
+        self.invalid_move_penalty = invalid_move_penalty
+        
         self.game = Game(config)
         self.done = self.game.done()
         self.reset()
@@ -46,30 +55,34 @@ class SameGameEnv:
         return self.get_observation(), reward, self.done, {}
 
     def compute_reward(
-        self, prev_left, cur_left, prev_singles, cur_singles, _action
+        self, prev_left, cur_left, prev_singles, cur_singles, action
     ) -> float:
-        """Multi-component reward function balancing progress and completion.
+        """Simple sparse reward function with configurable parameters.
         
-        Prioritizes reducing isolated singles over raw tile removal for better
-        long-term strategy development. Large completion bonus incentivizes
-        fully clearing the board.
+        Rewards:
+        - Full board completion: high positive reward
+        - Game end (no moves left): smaller positive reward based on remaining tiles
+        - Invalid moves: small negative penalty
+        - All other moves: zero reward
         """
-        if self.game.left == 0:
-            return float(5)
-        if prev_singles == prev_left:
-            self.done = True
-            return -cur_singles / 10
-        if prev_left == cur_left:
-            return -0.3
-
-        single = prev_singles - cur_singles
-        removed = prev_left - cur_left
-        total = self.num_rows * self.num_cols
+        # Full board completion - highest reward
+        if cur_left == 0:
+            return float(self.completion_reward)
         
-        if single > 0:
-            return (single / prev_left) * 3
-        else:
-            return removed / (10 * total)
+        # Invalid move penalty
+        if prev_left == cur_left:
+            return float(self.invalid_move_penalty)
+        
+        # Game end due to no valid moves (only singles remaining after move)
+        if cur_singles == cur_left and cur_left > 0:
+            self.done = True
+            # Partial completion reward based on how many tiles cleared
+            tiles_cleared = self.config.total_cells - cur_left
+            completion_ratio = tiles_cleared / self.config.total_cells
+            return float(self.partial_completion_base * completion_ratio)
+        
+        # All other moves get zero reward - pure sparse reward signal
+        return 0.0
 
     def get_observation(self) -> np.ndarray:
         return self._trainable_game(self.game.get_board())
