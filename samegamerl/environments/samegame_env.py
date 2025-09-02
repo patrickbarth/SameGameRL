@@ -5,12 +5,26 @@ from samegamerl.game.game_config import GameConfig, GameFactory
 
 
 class SameGameEnv:
+    """OpenAI Gym-style environment for SameGame with configurable reward shaping.
+    
+    Supports reward shaping through singles reduction rewards to help with sparse
+    reward learning in reinforcement learning scenarios.
+    
+    Args:
+        config: Game configuration (board size, colors). Defaults to medium config.
+        completion_reward: Reward for completely clearing the board.
+        partial_completion_base: Base reward multiplier for partial completions.
+        invalid_move_penalty: Penalty for clicking invalid cells.
+        singles_reduction_weight: Weight for rewarding moves that reduce singles count.
+                                 Set to 0.0 to disable reward shaping (default).
+    """
     def __init__(
         self,
         config: GameConfig | None = None,
         completion_reward: float = 10.0,
         partial_completion_base: float = 1.0,
         invalid_move_penalty: float = -0.01,
+        singles_reduction_weight: float = 0.0,
     ):
         if config is None:
             config = GameFactory.default()
@@ -24,6 +38,7 @@ class SameGameEnv:
         self.completion_reward = completion_reward
         self.partial_completion_base = partial_completion_base
         self.invalid_move_penalty = invalid_move_penalty
+        self.singles_reduction_weight = singles_reduction_weight
 
         self.game = Game(config)
         self.done = self.game.done()
@@ -60,12 +75,13 @@ class SameGameEnv:
     def compute_reward(
         self, prev_left, cur_left, prev_singles, cur_singles, action
     ) -> float:
-        """Simple sparse reward function with configurable parameters.
+        """Reward function with optional singles reduction reward shaping.
 
         Rewards:
         - Full board completion: high positive reward
         - Game end (no moves left): smaller positive reward based on remaining tiles
         - Invalid moves: small negative penalty
+        - Singles reduction: configurable reward for moves that reduce isolated tiles
         - All other moves: zero reward
         """
         # Full board completion - highest reward
@@ -84,7 +100,13 @@ class SameGameEnv:
             completion_ratio = tiles_cleared / self.config.total_cells
             return float(self.partial_completion_base * completion_ratio)
 
-        # All other moves get zero reward - pure sparse reward signal
+        # Singles reduction reward
+        if self.singles_reduction_weight > 0:
+            singles_reduced = prev_singles - cur_singles
+            if singles_reduced > 0:
+                return float(singles_reduced * self.singles_reduction_weight)
+        
+        # All other moves get zero reward
         return 0.0
 
     def get_observation(self) -> np.ndarray:

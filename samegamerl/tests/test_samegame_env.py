@@ -183,6 +183,29 @@ class TestStepFunction:
 class TestRewardFunction:
     """Test simplified sparse reward function"""
 
+    def test_default_reward_parameters(self):
+        """Test that default reward parameters work correctly"""
+        env = SameGameEnv()
+
+        assert env.completion_reward == 10.0
+        assert env.partial_completion_base == 1.0
+        assert env.invalid_move_penalty == -0.01
+        assert env.singles_reduction_weight == 0.0
+
+    def test_custom_reward_parameters(self):
+        """Test custom reward parameters are set correctly"""
+        env = SameGameEnv(
+            completion_reward=200.0,
+            partial_completion_base=25.0,
+            invalid_move_penalty=-0.1,
+            singles_reduction_weight=0.05,
+        )
+
+        assert env.completion_reward == 200.0
+        assert env.partial_completion_base == 25.0
+        assert env.invalid_move_penalty == -0.1
+        assert env.singles_reduction_weight == 0.05
+
     def test_completion_reward(self):
         """Test reward for full board completion"""
         config = GameFactory.custom(num_rows=2, num_cols=2, num_colors=3)
@@ -266,25 +289,45 @@ class TestRewardFunction:
         assert done
         assert env.done
 
-    def test_default_reward_parameters(self):
-        """Test that default reward parameters work correctly"""
-        env = SameGameEnv()
+    def test_singles_reduction_reward(self):
+        """Test singles reduction reward shaping"""
+        config = GameFactory.custom(num_rows=3, num_cols=3, num_colors=3)
+        env = SameGameEnv(config, singles_reduction_weight=0.2)
 
-        assert env.completion_reward == 10.0
-        assert env.partial_completion_base == 1.0
-        assert env.invalid_move_penalty == -0.01
+        # Create board where move reduces singles count
+        # Initial: 1-1-2 (1 single: top-right 2)
+        #          2-2-1
+        #          1-1-1
+        # After clicking (2,0): removes bottom-left 1, reduces singles
+        # After move: 0-0-0 (no singles)
+        #             1-1-0
+        #             2-2-2
+        board = [[1, 1, 2], [2, 2, 1], [1, 1, 1]]
+        env.reset(board=board)
 
-    def test_custom_reward_parameters(self):
-        """Test custom reward parameters are set correctly"""
-        env = SameGameEnv(
-            completion_reward=200.0,
-            partial_completion_base=25.0,
-            invalid_move_penalty=-0.1,
-        )
+        initial_singles = env.game.get_singles()
+        assert initial_singles == 1
 
-        assert env.completion_reward == 200.0
-        assert env.partial_completion_base == 25.0
-        assert env.invalid_move_penalty == -0.1
+        obs, reward, done, _ = env.step(6)  # Click on (2,0)
+        new_singles = env.game.get_singles()
+        assert new_singles == 0
+
+        expected_reward = 0.2 
+        assert abs(reward - expected_reward) < 0.001
+
+    def test_singles_reduction_priority(self):
+        """Test that completion reward takes priority over singles reduction"""
+        config = GameFactory.custom(num_rows=2, num_cols=2, num_colors=2)
+        env = SameGameEnv(config, completion_reward=100.0, singles_reduction_weight=0.5)
+
+        # Board that completes in one move
+        board = [[1, 1], [1, 1]]
+        env.reset(board=board)
+
+        obs, reward, done, _ = env.step(0)
+
+        assert done
+        assert reward == 100.0  # Completion reward, not singles reduction
 
 
 class TestEnvironmentIntegration:
