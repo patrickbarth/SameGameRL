@@ -55,6 +55,10 @@ def train(
 
         cur_loss = agent.learn()
         loss = (loss + cur_loss) / 2
+
+        for i in range(5):
+            cur_loss = agent.learn()
+
         agent.decrease_epsilon()
 
         if episode % report_freq == report_freq - 1:
