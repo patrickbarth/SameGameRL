@@ -1,0 +1,35 @@
+============================================================
+SAMEGAME BENCHMARK PERFORMANCE REPORT
+============================================================
+Dataset: 1000 games
+
+BOT: GreedySinglesBot
+----------------------------------------
+Games Played: 1000
+Completion Rate: 0.9%
+Average Tiles Cleared: 212.1
+Average Moves: 65.8
+Average Singles Left: 12.9
+
+BOT: LargestGroupBot
+----------------------------------------
+Games Played: 1000
+Completion Rate: 0.0%
+Average Tiles Cleared: 195.3
+Average Moves: 59.3
+Average Singles Left: 29.7
+
+BOT: RandomBot
+----------------------------------------
+Games Played: 1000
+Completion Rate: 0.0%
+Average Tiles Cleared: 193.0
+Average Moves: 64.6
+Average Singles Left: 32.0
+
+COMPARATIVE ANALYSIS
+----------------------------------------
+Ranking by Completion Rate:
+  1. GreedySinglesBot: 0.9% completion, 212.1 avg tiles cleared, 65.8 avg moves
+  2. LargestGroupBot: 0.0% completion, 195.3 avg tiles cleared, 59.3 avg moves
+  3. RandomBot: 0.0% completion, 193.0 avg tiles cleared, 64.6 avg moves

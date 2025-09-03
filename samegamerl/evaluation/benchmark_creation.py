@@ -10,6 +10,8 @@ This script:
 """
 
 
+from pathlib import Path
+
 from samegamerl.evaluation.benchmark_dataset import BenchmarkDataset
 from samegamerl.evaluation.benchmark_runner import BenchmarkRunner
 from samegamerl.evaluation.benchmark_analysis import BenchmarkAnalysis
@@ -104,15 +106,16 @@ def main():
     print("Step 5: Generate Analysis")
     print("-" * 30)
 
-    # Generate comprehensive report
-    analysis.generate_performance_report("benchmark_report.txt")
+    # Generate comprehensive report  
+    report_path = Path("samegamerl/evaluation/datasets") / "benchmark_report.txt"
+    analysis.generate_performance_report(str(report_path))
 
     # Show comparison plots (if matplotlib available)
     analysis.show_comparison_plots()
 
     print("\nFiles generated:")
-    print(f"  {dataset_file} - Dataset with results")
-    print("  benchmark_report.txt - Performance report")
+    print(f"  {dataset.dataset_path} - Dataset with results")
+    print(f"  {report_path} - Performance report")
     print(
         "\nPlots displayed interactively (use analysis.save_comparison_plots() to save them)"
     )

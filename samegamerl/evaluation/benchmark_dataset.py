@@ -58,7 +58,8 @@ class BenchmarkDataset:
         if config is None:
             config = GameFactory.medium()
 
-        self.dataset_path = Path(
+        # Generate filename based on config and preserve datasets directory
+        filename = (
             "benchmark_"
             + str(config.num_cols)
             + "_"
@@ -68,6 +69,7 @@ class BenchmarkDataset:
             + "_"
             + str(num_games)
         )
+        self.dataset_path = Path("samegamerl/evaluation/datasets") / filename
 
         # Use deterministic seeding for reproducible game generation
         rng = random.Random(base_seed)
@@ -97,6 +99,9 @@ class BenchmarkDataset:
         """Save dataset to disk using pickle for efficiency"""
         if filepath is None:
             filepath = str(self.dataset_path)
+
+        # Ensure parent directory exists
+        Path(filepath).parent.mkdir(parents=True, exist_ok=True)
 
         data = {"games": self.games, "results": self.results}
 
