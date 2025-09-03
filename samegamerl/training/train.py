@@ -32,6 +32,23 @@ def train(
     else:
         visualize_freq = max(1, epochs // visualize_num)
 
+    # Warm up phase to create sufficient samples in the replay_buffer
+    for i in range((agent.batch_size // max_steps) * 2):
+        obs = env.reset()
+
+        for step in range(max_steps):
+            action = agent.act(obs)
+
+            next_obs, reward, done, _ = env.step(action)
+
+            agent.remember(obs, action, reward, next_obs, done)
+            obs = next_obs
+
+            if done:
+                break
+            if step > max_steps / 2 and env.game.get_singles() == env.game.left:
+                break
+
     total_reward = 0
     loss = 0
     results = []
