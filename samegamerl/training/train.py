@@ -19,6 +19,7 @@ def train(
     report_num: int=500,
     visualize_num: int=10,
     update_target_num: int=1000,
+    warmup_episodes: int | None = None,  # If None, auto-calculates based on batch_size
 ):
     # Set default max_steps if not provided
     if max_steps is None:
@@ -33,7 +34,13 @@ def train(
         visualize_freq = max(1, epochs // visualize_num)
 
     # Warm up phase to create sufficient samples in the replay_buffer
-    for i in range((agent.batch_size // max_steps) * 2):
+    if warmup_episodes is None:
+        if max_steps > 0:
+            warmup_episodes = max(1, (agent.batch_size // max_steps) * 2)
+        else:
+            warmup_episodes = 0
+    
+    for i in range(warmup_episodes):
         obs = env.reset()
 
         for step in range(max_steps):

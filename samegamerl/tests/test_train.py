@@ -26,6 +26,7 @@ class MockAgent:
     def __init__(self):
         self.model = MockModel()
         self.epsilon = 1.0
+        self.batch_size = 32  # Default batch size for testing
         self.actions_taken = []
         self.learn_calls = 0
         self.target_updates = 0
@@ -93,7 +94,8 @@ class TestTrainFunction:
             max_steps=20,
             report_num=2,
             visualize_num=0,  # Disable visualization
-            update_target_num=3
+            update_target_num=3,
+            warmup_episodes=0  # Disable warmup for test consistency
         )
         
         # Check that training completed
@@ -121,7 +123,8 @@ class TestTrainFunction:
             max_steps=5,
             report_num=5,
             visualize_num=0,
-            update_target_num=20
+            update_target_num=20,
+            warmup_episodes=0  # Disable warmup for test consistency
         )
         
         # Should have reset once per epoch
@@ -142,7 +145,8 @@ class TestTrainFunction:
             max_steps=max_steps,
             report_num=1,
             visualize_num=0,
-            update_target_num=10
+            update_target_num=10,
+            warmup_episodes=0  # Disable warmup for test consistency
         )
         
         # Each episode should be limited by max_steps
@@ -170,7 +174,8 @@ class TestTrainFunction:
             max_steps=20,
             report_num=1,
             visualize_num=0,
-            update_target_num=10
+            update_target_num=10,
+            warmup_episodes=0  # Disable warmup for test consistency
         )
         
         # Should have exactly 3 steps (one per epoch) due to immediate termination
@@ -371,7 +376,8 @@ class TestTrainEdgeCases:
             max_steps=10,
             report_num=1,
             visualize_num=0,
-            update_target_num=1
+            update_target_num=1,
+            warmup_episodes=0  # Disable warmup for test consistency
         )
         
         # Should handle single epoch correctly
@@ -459,7 +465,8 @@ class TestTrainEdgeCases:
             max_steps=max_steps,
             report_num=1,
             visualize_num=0,
-            update_target_num=10
+            update_target_num=10,
+            warmup_episodes=0  # Disable warmup for test consistency
         )
         
         # Should terminate early due to singles condition
