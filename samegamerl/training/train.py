@@ -13,11 +13,12 @@ from samegamerl.evaluation.visualize_agent import play_eval_game
 def train(
     agent: DqnAgent,
     env: SameGameEnv,
-    epochs=1000,
+    epochs: int=1000,
+    training_loops: int = 5,
     max_steps=None,  # If None, defaults to half of total cells
-    report_num=500,
-    visualize_num=10,
-    update_target_num=1000,
+    report_num: int=500,
+    visualize_num: int=10,
+    update_target_num: int=1000,
 ):
     # Set default max_steps if not provided
     if max_steps is None:
@@ -56,7 +57,7 @@ def train(
         cur_loss = agent.learn()
         loss = (loss + cur_loss) / 2
 
-        for i in range(5):
+        for i in range(training_loops):
             cur_loss = agent.learn()
 
         agent.decrease_epsilon()
