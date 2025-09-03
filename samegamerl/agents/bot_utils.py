@@ -5,9 +5,6 @@ Pure functions for analyzing SameGame board states without dependency
 on specific bot implementations or inheritance hierarchies.
 """
 
-from copy import deepcopy
-from samegamerl.game.game import Game
-from samegamerl.game.game_config import GameConfig
 
 
 def find_valid_moves(board: list[list[int]]) -> list[tuple[int, int]]:
@@ -80,28 +77,94 @@ def calculate_group_size(board: list[list[int]], row: int, col: int) -> int:
 
 def simulate_move(board: list[list[int]], row: int, col: int) -> list[list[int]]:
     """
-    Simulate a move without modifying the original board.
+    Simulate a move without modifying the original board or creating Game objects.
     
     Returns the board state that would result from clicking at (row, col).
+    Optimized implementation that replicates Game.move() logic directly.
     """
     if not board or row < 0 or row >= len(board) or col < 0 or col >= len(board[0]):
-        return deepcopy(board)
+        return [row[:] for row in board]
     
     if board[row][col] == 0:
-        return deepcopy(board)
+        return [row[:] for row in board]
     
-    # Create a Game instance to leverage existing move mechanics
+    # Create working copy using list comprehension (faster than deepcopy)
+    new_board = [row[:] for row in board]
     num_rows, num_cols = len(board), len(board[0])
-    max_color = max(max(row) for row in board if row)
-    # Ensure num_colors is at least 3 to avoid randint(1,1) error in Game constructor
-    num_colors = max(max_color + 1, 3)
-    config = GameConfig(num_rows=num_rows, num_cols=num_cols, num_colors=num_colors)
     
-    game = Game(config)
-    game.set_board(deepcopy(board))
-    game.move((row, col))
+    # Find all connected tiles of the same color using flood-fill
+    target_color = board[row][col]
+    connected_tiles = set()
+    stack = [(row, col)]
     
-    return game.get_board()
+    while stack:
+        r, c = stack.pop()
+        if (r, c) in connected_tiles:
+            continue
+        connected_tiles.add((r, c))
+        
+        # Check 4-directional neighbors
+        for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            nr, nc = r + dr, c + dc
+            if (0 <= nr < num_rows and 0 <= nc < num_cols 
+                and (nr, nc) not in connected_tiles 
+                and board[nr][nc] == target_color):
+                stack.append((nr, nc))
+    
+    # Only proceed if group size > 1 (valid move)
+    if len(connected_tiles) <= 1:
+        return new_board
+    
+    # Remove the connected tiles
+    for r, c in connected_tiles:
+        new_board[r][c] = 0
+    
+    # Apply gravity (sink) - move non-zero tiles down
+    _apply_gravity(new_board, num_rows, num_cols)
+    
+    # Apply shrinking - remove empty columns from right
+    _apply_shrinking(new_board, num_rows, num_cols)
+    
+    return new_board
+
+
+def _apply_gravity(board: list[list[int]], num_rows: int, num_cols: int) -> None:
+    """Apply gravity to make tiles fall down, modifying board in-place."""
+    for col in range(num_cols):
+        # Collect non-zero tiles from bottom to top
+        non_zero_tiles = []
+        for row in range(num_rows - 1, -1, -1):
+            if board[row][col] != 0:
+                non_zero_tiles.append(board[row][col])
+        
+        # Clear the column
+        for row in range(num_rows):
+            board[row][col] = 0
+        
+        # Place non-zero tiles at bottom
+        for i, tile in enumerate(non_zero_tiles):
+            board[num_rows - 1 - i][col] = tile
+
+
+def _apply_shrinking(board: list[list[int]], num_rows: int, num_cols: int) -> None:
+    """Remove empty columns by shifting left, modifying board in-place."""
+    write_col = 0
+    
+    for read_col in range(num_cols):
+        # Check if column has any non-zero tiles
+        has_tiles = any(board[row][read_col] != 0 for row in range(num_rows))
+        
+        if has_tiles:
+            if write_col != read_col:
+                # Move column content to the left
+                for row in range(num_rows):
+                    board[row][write_col] = board[row][read_col]
+                    board[row][read_col] = 0
+            write_col += 1
+        elif write_col != read_col:
+            # Clear the column if it's being skipped
+            for row in range(num_rows):
+                board[row][read_col] = 0
 
 
 def count_singles(board: list[list[int]]) -> int:
