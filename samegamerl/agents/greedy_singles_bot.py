@@ -9,7 +9,6 @@ from samegamerl.agents.benchmark_bot_base import BenchmarkBotBase
 from samegamerl.agents.bot_utils import (
     find_valid_moves,
     count_singles_after_move,
-    calculate_group_size,
 )
 
 

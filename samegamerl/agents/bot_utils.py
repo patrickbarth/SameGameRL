@@ -12,7 +12,7 @@ from samegamerl.game.game_config import GameConfig
 
 def find_valid_moves(board: list[list[int]]) -> list[tuple[int, int]]:
     """
-    Find all valid moves (groups of size > 1) on the board.
+    Find all valid moves (groups of size > 1) on the board using optimized flood-fill.
     
     For each connected group of same-colored tiles with size > 1, returns the
     top-left-most position (smallest row, then smallest column) within that group.
@@ -23,15 +23,39 @@ def find_valid_moves(board: list[list[int]]) -> list[tuple[int, int]]:
         return []
     
     num_rows, num_cols = len(board), len(board[0])
-    visited = [[False] * num_cols for _ in range(num_rows)]
+    visited = set()
     valid_moves = []
     
     for row in range(num_rows):
         for col in range(num_cols):
-            if not visited[row][col] and board[row][col] != 0:
-                group_size = _explore_group(board, row, col, visited)
-                if group_size > 1:
-                    valid_moves.append((row, col))
+            if (row, col) in visited or board[row][col] == 0:
+                continue
+                
+            # Flood-fill to find entire group using stack
+            group_cells = []
+            stack = [(row, col)]
+            color = board[row][col]
+            
+            while stack:
+                r, c = stack.pop()
+                if (r, c) in visited:
+                    continue
+                    
+                visited.add((r, c))
+                group_cells.append((r, c))
+                
+                # Check 4-directional neighbors
+                for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                    nr, nc = r + dr, c + dc
+                    if (0 <= nr < num_rows and 0 <= nc < num_cols 
+                        and (nr, nc) not in visited 
+                        and board[nr][nc] == color):
+                        stack.append((nr, nc))
+            
+            # Only add if group size > 1, return top-left canonical position
+            if len(group_cells) > 1:
+                top_left = min(group_cells)  # Gets (min_row, min_col)
+                valid_moves.append(top_left)
     
     return valid_moves
 
@@ -80,6 +104,40 @@ def simulate_move(board: list[list[int]], row: int, col: int) -> list[list[int]]
     return game.get_board()
 
 
+def count_singles(board: list[list[int]]) -> int:
+    """
+    Count the number of single isolated tiles using direct neighbor checking.
+    
+    Returns the count of tiles that have no same-colored neighbors.
+    """
+    if not board or not board[0]:
+        return 0
+    
+    num_rows, num_cols = len(board), len(board[0])
+    singles = 0
+    
+    for row in range(num_rows):
+        for col in range(num_cols):
+            if board[row][col] == 0:
+                continue
+                
+            # Check if this cell is isolated (no same-color neighbors)
+            color = board[row][col]
+            has_neighbor = False
+            
+            for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                nr, nc = row + dr, col + dc
+                if (0 <= nr < num_rows and 0 <= nc < num_cols 
+                    and board[nr][nc] == color):
+                    has_neighbor = True
+                    break
+            
+            if not has_neighbor:
+                singles += 1
+                
+    return singles
+
+
 def count_singles_after_move(board: list[list[int]], row: int, col: int) -> int:
     """
     Count the number of single isolated tiles after making the specified move.
@@ -87,21 +145,7 @@ def count_singles_after_move(board: list[list[int]], row: int, col: int) -> int:
     Returns the count of tiles that would have no same-colored neighbors.
     """
     simulated_board = simulate_move(board, row, col)
-    
-    # Create Game instance to use existing get_singles method
-    if not simulated_board:
-        return 0
-        
-    num_rows, num_cols = len(simulated_board), len(simulated_board[0])
-    max_color = max((max(row) for row in simulated_board if row), default=0)
-    # Ensure num_colors is at least 3 to avoid randint(1,1) error in Game constructor
-    num_colors = max(max_color + 1, 3)
-    config = GameConfig(num_rows=num_rows, num_cols=num_cols, num_colors=num_colors)
-    
-    game = Game(config)
-    game.set_board(simulated_board)
-    
-    return game.get_singles()
+    return count_singles(simulated_board)
 
 
 def _explore_group(board: list[list[int]], row: int, col: int, visited: list[list[bool]]) -> int:
