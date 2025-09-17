@@ -57,7 +57,7 @@ def plot_multiple_training_results(results_dict, labels, interval=10, log_scale=
         ax.plot(
             x_axis,
             smoothed_results,
-            label=labels[i],  # f"Singles Weight: {weight}",
+            label=# f"Singles Weight: {weight}",
             color=colors[i % len(colors)],
             linewidth=2,
         )

@@ -1,9 +1,6 @@
-from samegamerl.agents.base_agent import BaseAgent
 from samegamerl.environments.samegame_env import SameGameEnv
 from samegamerl.agents.dqn_agent import DqnAgent
-from samegamerl.evaluation.plot_helper import plot_result
 from tqdm import tqdm
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from samegamerl.evaluation.visualize_agent import play_eval_game
 
@@ -19,9 +16,9 @@ def train(
     report_num: int=500,
     visualize_num: int=10,
     update_target_num: int=1000,
-    warmup_episodes: int | None = None,  # If None, auto-calculates based on batch_size
+    warmup_episodes: int | None = None,
 ):
-    # Set default max_steps if not provided
+
     if max_steps is None:
         max_steps = env.config.total_cells // 2
 

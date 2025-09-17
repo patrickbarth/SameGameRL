@@ -30,6 +30,7 @@ class DqnAgent(BaseAgent):
         batch_size: int = 128,
         gamma: float = 0.95,
         tau: float = 0.005,
+        replay_buffer_size: int = 50_000,
     ):
         # Store configuration
         self.config = config
@@ -46,7 +47,7 @@ class DqnAgent(BaseAgent):
         self.model = model.to(self.device)
         self.target_model = deepcopy(model).to(self.device)
 
-        self.replay_buffer = ReplayBuffer(capacity=50000)
+        self.replay_buffer = ReplayBuffer(capacity=replay_buffer_size)
         self.batch_size = batch_size
         self.won = 0
 
@@ -63,15 +64,17 @@ class DqnAgent(BaseAgent):
 
         self.criterion = torch.nn.MSELoss()
         self.opt = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
-        
+
         # Path management
         self.models_dir = Path("samegamerl/models")
         self.models_dir.mkdir(parents=True, exist_ok=True)
 
     def _create_tensor(self, data, dtype=torch.float32, requires_grad=False):
         """Create tensor directly on target device for efficiency."""
-        return torch.tensor(data, dtype=dtype, device=self.device, requires_grad=requires_grad)
-    
+        return torch.tensor(
+            data, dtype=dtype, device=self.device, requires_grad=requires_grad
+        )
+
     def act(self, observation: np.ndarray) -> int:
         """Select action using epsilon-greedy policy with Q-value estimation."""
         was_training = self.model.training
@@ -132,18 +135,18 @@ class DqnAgent(BaseAgent):
 
         # Single gradient step with gradient clipping for stability
         pred_q_values = self.model(obs).gather(1, actions)
-        
+
         with torch.no_grad():
             next_q_values = self.target_model(next_obs).max(1).values.unsqueeze(1)
             target_q_values = rewards + self.gamma * next_q_values * (~dones)
-        
+
         loss = self.criterion(pred_q_values, target_q_values)
         self.opt.zero_grad()
         loss.backward()
-        
+
         # Add gradient clipping to prevent gradient explosions
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
-        
+
         self.opt.step()
         return loss
 
@@ -164,7 +167,7 @@ class DqnAgent(BaseAgent):
         """Save model with proper error handling and path management."""
         if not name:
             name = self.model_name
-        
+
         try:
             model_path = self.models_dir / f"{name}.pth"
             torch.save(
@@ -184,16 +187,16 @@ class DqnAgent(BaseAgent):
         """Load model with proper error handling and path management."""
         if not name:
             name = self.model_name
-        
+
         try:
             model_path = self.models_dir / f"{name}.pth"
             if not model_path.exists():
                 raise FileNotFoundError(f"Model file not found: {model_path}")
-            
+
             checkpoint = torch.load(model_path, map_location=self.device)
             self.model.load_state_dict(checkpoint["model_state_dict"])
             self.opt.load_state_dict(checkpoint["optimizer_state_dict"])
-            
+
             if load_target:
                 self.target_model.load_state_dict(checkpoint["target_model_state_dict"])
             else:
