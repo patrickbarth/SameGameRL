@@ -16,11 +16,8 @@ class LargestGroupBot(BenchmarkBotBase):
     Provides a greedy baseline that prioritizes immediate large removals
     over strategic considerations.
     """
-
-    @property
-    def name(self) -> str:
-        """Return the display name of this bot"""
-        return "LargestGroupBot"
+    
+    name = "LargestGroupBot"  # Class attribute - accessible without instantiation
 
     def select_action(self, board: list[list[int]]) -> tuple[int, int] | None:
         """

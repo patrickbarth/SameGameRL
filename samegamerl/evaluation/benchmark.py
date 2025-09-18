@@ -123,7 +123,7 @@ class Benchmark:
         self, bots: dict[str, BenchmarkBotBase] | list[str]
     ) -> dict[str, list[BotPerformance]]:
         """
-        Run bots against all games and return performance results.
+        Run bots against games with lazy loading - only compute missing results.
 
         Args:
             bots: Dictionary of {name: bot_instance} or list of built-in bot names
@@ -131,6 +131,9 @@ class Benchmark:
         Returns:
             Dictionary mapping bot names to their performance results
         """
+        # Try to load existing results for lazy loading
+        existing_loaded = self._load_existing_results()
+        
         # Ensure games are generated
         self._generate_games()
 
@@ -147,20 +150,35 @@ class Benchmark:
             bots = bot_instances
 
         results = {}
+        any_new_computation = False
 
         for bot_name, bot_instance in bots.items():
-            bot_results = []
-            print(f"Evaluating {bot_name} against {len(self.games)} games...")
-
-            # Set the benchmark name on the bot instance
-            bot_instance._benchmark_name = bot_name
-
-            for game_snapshot in tqdm(self.games, desc=f"Running {bot_name}"):
+            # Determine which games need to be computed for this bot
+            missing_game_ids = self._determine_missing_games(bot_name)
+            
+            if not missing_game_ids:
+                # Bot already has all required results - use existing
+                print(f"{bot_name}: Using existing results for all {self.num_games} games")
+                results[bot_name] = self.results[bot_name][:self.num_games]
+                continue
+            
+            # Run bot only on missing games
+            print(f"{bot_name}: Computing {len(missing_game_ids)} missing games (total {self.num_games})")
+            new_results = []
+            any_new_computation = True
+            
+            for game_id in tqdm(missing_game_ids, desc=f"Running {bot_name}"):
+                game_snapshot = self.games[game_id]
                 performance = self._run_bot_on_game(bot_instance, game_snapshot)
-                bot_results.append(performance)
+                new_results.append(performance)
 
-            results[bot_name] = bot_results
-            self.results[bot_name] = bot_results
+            # Merge new results with existing validated results  
+            self._merge_results(bot_name, new_results)
+            results[bot_name] = self.results[bot_name]
+
+        # Save updated results if any new computation was done
+        if any_new_computation:
+            self.save()
 
         return results
 
@@ -197,7 +215,7 @@ class Benchmark:
         completed = game.left == 0
 
         return BotPerformance(
-            bot_name=getattr(bot, "_benchmark_name", bot.__class__.__name__),
+            bot_name=bot.name,
             game_id=game_snapshot.game_id,
             tiles_cleared=tiles_cleared,
             singles_remaining=singles_remaining,
@@ -374,6 +392,117 @@ class Benchmark:
             return benchmark
         except Exception:
             return None
+
+    def _load_existing_results(self) -> bool:
+        """Load existing results for lazy loading, validating compatibility"""
+        if not self.benchmark_path.exists():
+            return False
+
+        try:
+            with open(self.benchmark_path, "rb") as f:
+                data = pickle.load(f)
+
+            # Validate that loaded data is compatible with current configuration
+            loaded_config = data.get("config")
+            loaded_base_seed = data.get("base_seed")
+
+            if loaded_config != self.config:
+                return False  # Different game configuration
+
+            if loaded_base_seed != self.base_seed:
+                return False  # Different seed - games would be different
+
+            # Load compatible results and games
+            self.results = data.get("results", {})
+            loaded_games = data.get("games", [])
+            
+            # Only load games if they don't exceed our current requirement
+            if len(loaded_games) <= self.num_games:
+                self.games = loaded_games
+            else:
+                # Use subset of games that match our requirement
+                self.games = loaded_games[:self.num_games]
+
+            return True
+
+        except Exception:
+            return False
+
+    def _validate_existing_results(self, bot_name: str, results: list[BotPerformance]) -> int:
+        """Validate existing results for a bot and return count of valid consecutive results"""
+        if not results:
+            return 0
+
+        valid_count = 0
+        expected_game_id = 0
+
+        for result in results:
+            # Check game_id continuity (must be sequential starting from 0)
+            if result.game_id != expected_game_id:
+                break
+
+            # Check bot_name consistency
+            if result.bot_name != bot_name:
+                break
+
+            # Check that result has all required fields
+            try:
+                if not isinstance(result.tiles_cleared, int) or result.tiles_cleared < 0:
+                    break
+                if not isinstance(result.singles_remaining, int) or result.singles_remaining < 0:
+                    break
+                if not isinstance(result.moves_made, int) or result.moves_made < 0:
+                    break
+                if not isinstance(result.completed, bool):
+                    break
+            except (AttributeError, TypeError):
+                break
+
+            valid_count += 1
+            expected_game_id += 1
+
+        return valid_count
+
+    def _determine_missing_games(self, bot_name: str) -> list[int]:
+        """Determine which games need to be computed for a bot"""
+        existing_results = self.results.get(bot_name, [])
+        valid_count = self._validate_existing_results(bot_name, existing_results)
+        
+        # Return list of missing game_ids
+        missing_games = []
+        for game_id in range(self.num_games):
+            if game_id >= valid_count:
+                missing_games.append(game_id)
+                
+        return missing_games
+
+    def _merge_results(self, bot_name: str, new_results: list[BotPerformance]) -> None:
+        """Merge new results with existing validated results for a bot"""
+        existing_results = self.results.get(bot_name, [])
+        valid_count = self._validate_existing_results(bot_name, existing_results)
+        
+        # Keep only the valid existing results
+        validated_existing = existing_results[:valid_count]
+        
+        # Create a dictionary for fast lookup of new results by game_id
+        new_results_dict = {result.game_id: result for result in new_results}
+        
+        # Build final results list maintaining order
+        merged_results = []
+        
+        for game_id in range(self.num_games):
+            if game_id < valid_count:
+                # Use existing valid result
+                merged_results.append(validated_existing[game_id])
+            elif game_id in new_results_dict:
+                # Use new result
+                merged_results.append(new_results_dict[game_id])
+            else:
+                # This shouldn't happen if _determine_missing_games worked correctly
+                # but we'll handle it gracefully
+                break
+                
+        self.results[bot_name] = merged_results
 
     def load(self, filepath: str | None = None) -> bool:
         """Load benchmark data from disk into existing instance"""

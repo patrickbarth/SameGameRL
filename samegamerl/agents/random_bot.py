@@ -18,7 +18,9 @@ class RandomBot(BenchmarkBotBase):
     Supports seeded random generation for reproducible testing.
     """
 
-    def __init__(self, seed: int | None = 42):
+    name = "RandomBot"  # Class attribute - accessible without instantiation
+
+    def __init__(self, seed: int = 42):
         """
         Initialize RandomBot with optional random seed.
 
@@ -26,11 +28,6 @@ class RandomBot(BenchmarkBotBase):
             seed: Random seed for reproducible behavior during testing
         """
         self.rng = random.Random(seed)
-
-    @property
-    def name(self) -> str:
-        """Return the display name of this bot"""
-        return "RandomBot"
 
     def select_action(self, board: list[list[int]]) -> tuple[int, int] | None:
         """

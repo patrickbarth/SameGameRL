@@ -19,11 +19,8 @@ class GreedySinglesBot(BenchmarkBotBase):
     Evaluates each possible move by predicting the resulting singles count
     and selects the move that produces the fewest isolated tiles.
     """
-
-    @property
-    def name(self) -> str:
-        """Return the display name of this bot"""
-        return "GreedySinglesBot"
+    
+    name = "GreedySinglesBot"  # Class attribute - accessible without instantiation
 
     def select_action(self, board: list[list[int]]) -> tuple[int, int] | None:
         """

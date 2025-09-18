@@ -14,13 +14,11 @@ class BenchmarkBotBase(ABC):
     
     Unlike BaseAgent, this interface focuses solely on action selection
     without learning or persistence concerns.
+    
+    Subclasses must define a 'name' class attribute with the bot's display name.
     """
-
-    @property
-    @abstractmethod
-    def name(self) -> str:
-        """Return the display name of this bot"""
-        pass
+    
+    name: str  # Class attribute that subclasses must define
 
     @abstractmethod
     def select_action(self, board: list[list[int]]) -> tuple[int, int] | None:
