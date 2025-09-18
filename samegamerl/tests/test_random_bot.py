@@ -69,48 +69,71 @@ class TestRandomBotActionSelection:
         assert action is None
 
 
-class TestRandomBotDistribution:
-    """Test that RandomBot explores different moves over multiple calls"""
+class TestRandomBotDeterminism:
+    """Test that RandomBot behaves deterministically for the same board state"""
 
-    def test_explores_different_moves(self):
-        """Over many trials, bot should pick different valid moves"""
+    def test_same_board_same_action(self):
+        """Same board state should always produce the same action"""
         bot = RandomBot()
         board = [[3, 2, 1], [3, 2, 1], [3, 2, 3]]
+        
+        # Call multiple times with same board
+        actions = [bot.select_action(board) for _ in range(10)]
+        
+        # All actions should be identical
+        assert all(action == actions[0] for action in actions)
+        # Action should be one of the valid moves
         valid_moves = [(0, 0), (0, 1), (0, 2)]
+        assert actions[0] in valid_moves
 
-        selected_moves = set()
-        for _ in range(50):  # Sample many times
-            action = bot.select_action(board)
-            if action:
-                selected_moves.add(action)
-
-        # Should explore multiple options
-        min_explored = 3
-        assert len(selected_moves) == min_explored
-
-    def test_uniform_distribution_approximation(self):
-        """Over many trials, selection should be roughly uniform"""
+    def test_different_boards_different_actions(self):
+        """Different board states should produce different actions (usually)"""
         bot = RandomBot()
-        board = [[3, 2, 0], [3, 2, 1], [3, 2, 3]]
-        move1, move2 = (0, 0), (0, 1)
+        
+        board1 = [[1, 2, 3], [1, 2, 3], [1, 2, 3]]
+        board2 = [[3, 2, 1], [3, 2, 1], [3, 2, 1]]
+        board3 = [[2, 1, 3], [2, 1, 3], [2, 1, 3]]
+        
+        action1 = bot.select_action(board1)
+        action2 = bot.select_action(board2)
+        action3 = bot.select_action(board3)
+        
+        # At least some actions should be different
+        actions = {action1, action2, action3}
+        assert len(actions) > 1
 
-        counts = {move1: 0, move2: 0}
-        trials = 1000
+    def test_determinism_across_bot_instances(self):
+        """Different bot instances should produce same action for same board"""
+        board = [[1, 1, 2], [1, 2, 2], [3, 3, 3]]
+        
+        bot1 = RandomBot()
+        bot2 = RandomBot()
+        
+        action1 = bot1.select_action(board)
+        action2 = bot2.select_action(board)
+        
+        assert action1 == action2
 
-        for _ in range(trials):
-            action = bot.select_action(board)
-            if action in counts:
-                counts[action] += 1
-
-        # Each move should occur roughly 50% of the time (allow some variance)
-        expected_per_move = trials // 2
-        tolerance = trials * 0.1  # 10% tolerance
-
-        assert (
-            expected_per_move - tolerance
-            <= counts[move1]
-            <= expected_per_move + tolerance
-        )
+    def test_determinism_with_varying_board_sizes(self):
+        """Determinism should work with different board configurations"""
+        bot = RandomBot()
+        
+        # Small board
+        small_board = [[1, 1], [2, 2]]
+        small_action1 = bot.select_action(small_board)
+        small_action2 = bot.select_action(small_board)
+        assert small_action1 == small_action2
+        
+        # Larger board
+        large_board = [
+            [1, 2, 3, 1, 2],
+            [2, 1, 2, 3, 1], 
+            [3, 3, 1, 2, 2],
+            [1, 2, 3, 1, 3]
+        ]
+        large_action1 = bot.select_action(large_board)
+        large_action2 = bot.select_action(large_board)
+        assert large_action1 == large_action2
 
 
 class TestRandomBotEdgeCases:
