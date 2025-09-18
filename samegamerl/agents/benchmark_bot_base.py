@@ -16,6 +16,12 @@ class BenchmarkBotBase(ABC):
     without learning or persistence concerns.
     """
 
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Return the display name of this bot"""
+        pass
+
     @abstractmethod
     def select_action(self, board: list[list[int]]) -> tuple[int, int] | None:
         """

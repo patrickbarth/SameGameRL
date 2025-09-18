@@ -27,6 +27,11 @@ class RandomBot(BenchmarkBotBase):
         """
         self.rng = random.Random(seed)
 
+    @property
+    def name(self) -> str:
+        """Return the display name of this bot"""
+        return "RandomBot"
+
     def select_action(self, board: list[list[int]]) -> tuple[int, int] | None:
         """
         Randomly select from all valid moves on the board.

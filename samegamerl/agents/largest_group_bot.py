@@ -17,6 +17,11 @@ class LargestGroupBot(BenchmarkBotBase):
     over strategic considerations.
     """
 
+    @property
+    def name(self) -> str:
+        """Return the display name of this bot"""
+        return "LargestGroupBot"
+
     def select_action(self, board: list[list[int]]) -> tuple[int, int] | None:
         """
         Select the position of the largest group on the board.

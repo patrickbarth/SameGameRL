@@ -20,6 +20,11 @@ class GreedySinglesBot(BenchmarkBotBase):
     and selects the move that produces the fewest isolated tiles.
     """
 
+    @property
+    def name(self) -> str:
+        """Return the display name of this bot"""
+        return "GreedySinglesBot"
+
     def select_action(self, board: list[list[int]]) -> tuple[int, int] | None:
         """
         Select the move that results in the fewest single isolated tiles.
