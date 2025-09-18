@@ -32,6 +32,7 @@ class RandomBot(BenchmarkBotBase):
     def select_action(self, board: list[list[int]]) -> tuple[int, int] | None:
         """
         Randomly select from all valid moves on the board.
+        Will select same random move for the same board.
 
         Args:
             board: Current game board state
@@ -43,5 +44,7 @@ class RandomBot(BenchmarkBotBase):
 
         if not valid_moves:
             return None
+
+        self.rng.seed(hash(str(board)))
 
         return self.rng.choice(valid_moves)
