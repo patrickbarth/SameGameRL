@@ -1,9 +1,7 @@
 """Benchmark system for consistent agent evaluation across standardized games."""
 
 import copy
-import pickle
 import random
-from dataclasses import dataclass
 from pathlib import Path
 
 from tqdm import tqdm
@@ -22,28 +20,13 @@ from samegamerl.agents.benchmark_bot_base import BenchmarkBotBase
 from samegamerl.agents.random_bot import RandomBot
 from samegamerl.agents.largest_group_bot import LargestGroupBot
 from samegamerl.agents.greedy_singles_bot import GreedySinglesBot
+from samegamerl.evaluation.benchmark_data import (
+    GameSnapshot,
+    BotPerformance,
+    BenchmarkData,
+)
+from samegamerl.evaluation.benchmark_repository import BenchmarkRepository
 
-
-@dataclass
-class GameSnapshot:
-    """Immutable representation of a game's initial state"""
-
-    board: list[list[int]]
-    config: GameConfig
-    seed: int
-    game_id: int
-
-
-@dataclass
-class BotPerformance:
-    """Performance metrics for a single bot on a single game"""
-
-    bot_name: str
-    game_id: int
-    tiles_cleared: int
-    singles_remaining: int
-    moves_made: int
-    completed: bool
 
 
 class Benchmark:
@@ -65,10 +48,20 @@ class Benchmark:
         self.ray_num_cpus = ray_num_cpus
         self._ray_initialized = False
 
-        # Set up benchmark path
+        # Set up benchmark path and repository
         self.benchmark_path = Path(self._get_benchmark_path(benchmark_path))
+        self.repository = BenchmarkRepository(self.benchmark_path)
         self.games: list[GameSnapshot] = []
         self.results: dict[str, list[BotPerformance]] = {}
+
+    def get_game(self, game_id: int) -> GameSnapshot:
+        """Get a specific game by ID"""
+        if not self.games:
+            self._generate_games()
+
+        if 0 <= game_id < len(self.games):
+            return self.games[game_id]
+        raise IndexError(f"Game ID {game_id} out of range")
 
     def _get_benchmark_path(self, benchmark_path: str | None) -> str:
         if benchmark_path is None:
@@ -286,156 +279,89 @@ class Benchmark:
             # Fallback to sequential if Ray not available
             return self._run_games_sequential(bot, game_snapshots, bot_name)
 
-    def get_game(self, game_id: int) -> GameSnapshot:
-        """Get a specific game by ID"""
-        if not self.games:
-            self._generate_games()
-
-        if 0 <= game_id < len(self.games):
-            return self.games[game_id]
-        raise IndexError(f"Game ID {game_id} out of range")
-
     def save(self, filepath: str | None = None) -> None:
         """Save benchmark data to disk"""
         if filepath is None:
-            filepath = str(self.benchmark_path)
+            # Use default repository
+            repository = self.repository
+        else:
+            # Use custom filepath
+            repository = BenchmarkRepository(Path(filepath))
 
-        # Ensure parent directory exists
-        Path(filepath).parent.mkdir(parents=True, exist_ok=True)
-
-        data = {
-            "games": self.games,
-            "results": self.results,
-            "config": self.config,
-            "num_games": self.num_games,
-            "base_seed": self.base_seed,
-        }
-
-        with open(filepath, "wb") as f:
-            pickle.dump(data, f)
+        data = BenchmarkData(
+            games=self.games,
+            results=self.results,
+            config=self.config,
+            num_games=self.num_games,
+            base_seed=self.base_seed,
+        )
+        repository.save_data(data)
 
     @classmethod
     def load_from_file(cls, filepath: str) -> "Benchmark | None":
         """Load benchmark from file, creating new instance with loaded config"""
-        if not Path(filepath).exists():
+        repository = BenchmarkRepository(Path(filepath))
+        data = repository.load_data()
+
+        if data is None:
             return None
 
-        try:
-            with open(filepath, "rb") as f:
-                data = pickle.load(f)
+        # Create benchmark with loaded config
+        benchmark = cls(
+            config=data.config,
+            num_games=data.num_games,
+            base_seed=data.base_seed,
+            benchmark_path=filepath,
+        )
 
-            # Create benchmark with loaded config
-            benchmark = cls(
-                config=data["config"],
-                num_games=data.get("num_games", 1000),
-                base_seed=data.get("base_seed", 42),
-            )
+        # Load the data
+        benchmark.games = data.games
+        benchmark.results = data.results
 
-            # Load the data
-            benchmark.games = data["games"]
-            benchmark.results = data.get("results", {})
-
-            return benchmark
-        except Exception:
-            return None
+        return benchmark
 
     def _load_existing_results(self) -> bool:
         """Load existing results for lazy loading, validating compatibility"""
-        if not self.benchmark_path.exists():
+        if not self.repository.data_exists():
             return False
 
-        try:
-            with open(self.benchmark_path, "rb") as f:
-                data = pickle.load(f)
-
-            # Validate that loaded data is compatible with current configuration
-            loaded_config = data.get("config")
-            loaded_base_seed = data.get("base_seed")
-
-            if loaded_config != self.config:
-                return False  # Different game configuration
-
-            if loaded_base_seed != self.base_seed:
-                return False  # Different seed - games would be different
-
-            # Load compatible results and games
-            self.results = data.get("results", {})
-            loaded_games = data.get("games", [])
-
-            # Only load games if they don't exceed our current requirement
-            if len(loaded_games) <= self.num_games:
-                self.games = loaded_games
-            else:
-                # Use subset of games that match our requirement
-                self.games = loaded_games[: self.num_games]
-
-            return True
-
-        except Exception:
+        # Check compatibility first
+        if not self.repository.is_compatible(self.config, self.base_seed):
             return False
+
+        # Load compatible data
+        data = self.repository.load_data()
+        if data is None:
+            return False
+
+        # Load results and games
+        self.results = data.results
+
+        # Only load games if they don't exceed our current requirement
+        if len(data.games) <= self.num_games:
+            self.games = data.games
+        else:
+            # Use subset of games that match our requirement
+            self.games = data.games[: self.num_games]
+
+        return True
 
     def _validate_existing_results(
         self, bot_name: str, results: list[BotPerformance]
     ) -> int:
         """Validate existing results for a bot and return count of valid consecutive results"""
-        if not results:
-            return 0
-
-        valid_count = 0
-        expected_game_id = 0
-
-        for result in results:
-            # Check game_id continuity (must be sequential starting from 0)
-            if result.game_id != expected_game_id:
-                break
-
-            # Check bot_name consistency
-            if result.bot_name != bot_name:
-                break
-
-            # Check that result has all required fields
-            if not self._is_valid_performance(result):
-                break
-
-            valid_count += 1
-            expected_game_id += 1
-
-        return valid_count
+        return self.repository.validate_results(bot_name, results)
 
     def _determine_missing_games(self, bot_name: str) -> list[int]:
         """Determine which games need to be computed for a bot"""
-        existing_results = self.results.get(bot_name, [])
-        valid_count = self._validate_existing_results(bot_name, existing_results)
-
-        # Return list of missing game_ids
-        return list(range(valid_count, self.num_games))
+        return self.repository.determine_missing_games(bot_name, self.results, self.num_games)
 
     def _merge_results(self, bot_name: str, new_results: list[BotPerformance]) -> None:
         """Merge new results with existing validated results for a bot"""
         existing_results = self.results.get(bot_name, [])
-        valid_count = self._validate_existing_results(bot_name, existing_results)
-
-        # Keep only the valid existing results
-        validated_existing = existing_results[:valid_count]
-
-        # Create a dictionary for fast lookup of new results by game_id
-        new_results_dict = {result.game_id: result for result in new_results}
-
-        # Build final results list maintaining order
-        merged_results = []
-
-        for game_id in range(self.num_games):
-            if game_id < valid_count:
-                # Use existing valid result
-                merged_results.append(validated_existing[game_id])
-            elif game_id in new_results_dict:
-                # Use new result
-                merged_results.append(new_results_dict[game_id])
-            else:
-                # This shouldn't happen if _determine_missing_games worked correctly
-                # but we'll handle it gracefully
-                break
-
+        merged_results = self.repository.merge_results(
+            existing_results, new_results, self.num_games, bot_name
+        )
         self.results[bot_name] = merged_results
 
     def __len__(self) -> int:

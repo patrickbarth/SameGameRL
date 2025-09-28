@@ -9,10 +9,8 @@ import pytest
 import tempfile
 from pathlib import Path
 
-from samegamerl.evaluation.benchmark import (
-    Benchmark,
-    BotPerformance,
-)
+from samegamerl.evaluation.benchmark import Benchmark
+from samegamerl.evaluation.benchmark_data import BotPerformance
 from samegamerl.game.game_config import GameFactory
 from samegamerl.agents.random_bot import RandomBot
 from samegamerl.agents.benchmark_bot_base import BenchmarkBotBase
