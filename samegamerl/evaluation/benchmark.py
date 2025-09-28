@@ -15,7 +15,7 @@ from samegamerl.evaluation.benchmark_data import (
     BenchmarkData,
 )
 from samegamerl.evaluation.benchmark_repository import BenchmarkRepository
-from samegamerl.evaluation.execution_strategies import ExecutionStrategyFactory
+from samegamerl.evaluation.benchmark_execution_strategies import ExecutionStrategyFactory
 
 
 class Benchmark:

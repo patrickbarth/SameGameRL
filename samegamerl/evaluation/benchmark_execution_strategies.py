@@ -8,6 +8,7 @@ from tqdm import tqdm
 # Optional Ray import for parallelization
 try:
     import ray
+
     RAY_AVAILABLE = True
 except ImportError:
     RAY_AVAILABLE = False
@@ -150,7 +151,9 @@ class ExecutionStrategyFactory:
     """Factory for creating execution strategies."""
 
     @staticmethod
-    def create_strategy(use_ray: bool, ray_num_cpus: int | None = None) -> ExecutionStrategy:
+    def create_strategy(
+        use_ray: bool, ray_num_cpus: int | None = None
+    ) -> ExecutionStrategy:
         """Create appropriate execution strategy based on configuration."""
         if use_ray and RAY_AVAILABLE:
             return ParallelExecutionStrategy(ray_num_cpus)
@@ -159,6 +162,7 @@ class ExecutionStrategyFactory:
 
 
 # Helper functions for bot execution
+
 
 def _run_bot_on_game_sequential(
     bot: BenchmarkBotBase, game_snapshot: GameSnapshot
@@ -204,6 +208,7 @@ def _run_bot_on_game_sequential(
 
 # Ray remote function for parallel execution
 if RAY_AVAILABLE:
+
     @ray.remote
     def _run_bot_on_game_parallel(
         bot: BenchmarkBotBase, game_snapshot: GameSnapshot
