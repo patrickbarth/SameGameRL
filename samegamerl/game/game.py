@@ -1,5 +1,4 @@
 import random
-from math import ceil
 from math import floor
 
 import numpy as np
@@ -9,21 +8,24 @@ from samegamerl.game.game_config import GameConfig, GameFactory
 
 class Game:
 
-    def __init__(self, config: GameConfig = GameFactory.default()):
+    def __init__(self, config: GameConfig = GameFactory.default(), seed: int | None = None):
         self.config = config
         self.neighbours = self.initialize_neighbours(self.config.num_rows, self.config.num_cols)
-        self.board = self.create_board(
-            [[-1 for _ in range(self.config.num_cols)] for _ in range(self.config.num_rows)]
-        )
+        self.board = self.create_board(seed=seed)
         self.left = self.config.num_rows * self.config.num_cols
         self.cols_left = self.config.num_cols
 
-    def create_board(self, board: list[list[int]]) -> list[list[int]]:
-        for row in range(len(board)):
-            for col in range(len(board[row])):
-                board[row][col] = random.randint(1, self.config.num_colors - 1)
+    def create_board(self, seed: int | None = None) -> list[list[int]]:
+        """Create a new random board with optional seed for reproducibility."""
+        if seed is not None:
+            game_rng = random.Random(seed)
+            randint_func = game_rng.randint
+        else:
+            randint_func = random.randint
 
-        return board
+        return [[randint_func(1, self.config.num_colors - 1)
+                 for _ in range(self.config.num_cols)]
+                 for _ in range(self.config.num_rows)]
 
     def get_board(self) -> list[list[int]]:
         """Return an immutable copy of the board to prevent external modifications"""
@@ -63,7 +65,6 @@ class Game:
         return colors
 
     def move(self, tile: tuple[int, int]):
-        old_left = self.left
         new_neighbours = {tile}
         old_neighbours = {tile}
         color = self.board[tile[0]][tile[1]]
