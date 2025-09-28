@@ -30,9 +30,6 @@ class SameGameEnv:
             config = GameFactory.default()
 
         self.config = config
-        self.num_colors = config.num_colors
-        self.num_rows = config.num_rows
-        self.num_cols = config.num_cols
 
         # Reward function parameters
         self.completion_reward = completion_reward
@@ -118,23 +115,23 @@ class SameGameEnv:
             board = self.game.get_board()
         board_np = np.array(board)
         obs = np.zeros(
-            (self.num_colors, self.num_rows, self.num_cols), dtype=np.float32
+            (self.config.num_colors, self.config.num_rows, self.config.num_cols), dtype=np.float32
         )
-        for color in range(self.num_colors):
+        for color in range(self.config.num_colors):
             obs[color] = board_np == color
         return obs
 
     def _reverse_trainable_game(self, board: np.ndarray) -> list[list[int]]:
         """Convert one-hot encoded tensor back to integer board representation."""
-        new_board = [[0 for _ in range(self.num_cols)] for _ in range(self.num_rows)]
+        new_board = [[0 for _ in range(self.config.num_cols)] for _ in range(self.config.num_rows)]
 
-        for color in range(self.num_colors):
-            for row in range(self.num_rows):
-                for col in range(self.num_cols):
+        for color in range(self.config.num_colors):
+            for row in range(self.config.num_rows):
+                for col in range(self.config.num_cols):
                     if board[color, row, col] == 1:
                         new_board[row][col] = color
 
         return new_board
 
     def _to_2d(self, action):
-        return divmod(action, self.num_cols)
+        return divmod(action, self.config.num_cols)

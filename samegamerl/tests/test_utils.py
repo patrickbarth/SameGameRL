@@ -194,13 +194,13 @@ class GameStateValidator:
         board = game.get_board()
         
         # Check dimensions
-        assert len(board) == game.num_rows
-        assert all(len(row) == game.num_cols for row in board)
+        assert len(board) == game.config.num_rows
+        assert all(len(row) == game.config.num_cols for row in board)
         
         # Check color values
         for row in board:
             for cell in row:
-                assert 0 <= cell < game.num_colors
+                assert 0 <= cell < game.config.num_colors
         
         # Check left count matches actual non-empty cells
         actual_left = sum(1 for row in board for cell in row if cell != 0)
@@ -212,9 +212,9 @@ class GameStateValidator:
         board = game.get_board()
         
         # Check sinking: no floating tiles
-        for c in range(game.num_cols):
+        for c in range(game.config.num_cols):
             found_empty = False
-            for r in range(game.num_rows - 1, -1, -1):
+            for r in range(game.config.num_rows - 1, -1, -1):
                 if board[r][c] == 0:
                     found_empty = True
                 elif found_empty:
@@ -223,12 +223,12 @@ class GameStateValidator:
         
         # Check shrinking: no empty columns between non-empty columns
         last_non_empty_col = -1
-        for c in range(game.num_cols):
-            col_has_tiles = any(board[r][c] != 0 for r in range(game.num_rows))
+        for c in range(game.config.num_cols):
+            col_has_tiles = any(board[r][c] != 0 for r in range(game.config.num_rows))
             if col_has_tiles:
                 # Check if there are empty columns before this one after last_non_empty_col
                 for empty_c in range(last_non_empty_col + 1, c):
-                    col_empty = all(board[r][empty_c] == 0 for r in range(game.num_rows))
+                    col_empty = all(board[r][empty_c] == 0 for r in range(game.config.num_rows))
                     assert col_empty, f"Non-empty column {c} found after empty columns"
                 last_non_empty_col = c
     
@@ -236,8 +236,8 @@ class GameStateValidator:
     def validate_connected_component(game: Game, start_pos: tuple[int, int]) -> list[tuple[int, int]]:
         """Find and validate connected component from starting position"""
         board = game.get_board()
-        if start_pos[0] < 0 or start_pos[0] >= game.num_rows or \
-           start_pos[1] < 0 or start_pos[1] >= game.num_cols:
+        if start_pos[0] < 0 or start_pos[0] >= game.config.num_rows or \
+           start_pos[1] < 0 or start_pos[1] >= game.config.num_cols:
             return []
         
         start_color = board[start_pos[0]][start_pos[1]]
@@ -254,7 +254,7 @@ class GameStateValidator:
                 continue
             
             row, col = pos
-            if (0 <= row < game.num_rows and 0 <= col < game.num_cols and
+            if (0 <= row < game.config.num_rows and 0 <= col < game.config.num_cols and
                 board[row][col] == start_color):
                 visited.add(pos)
                 component.append(pos)
@@ -275,7 +275,7 @@ class EnvironmentValidator:
     def validate_observation_shape(env: SameGameEnv, obs: np.ndarray):
         """Validate observation has correct shape and properties"""
         from .conftest import assert_valid_observation
-        expected_shape = (env.num_colors, env.num_rows, env.num_cols)
+        expected_shape = (env.config.num_colors, env.config.num_rows, env.config.num_cols)
         assert_valid_observation(obs, expected_shape)
     
     @staticmethod
@@ -295,7 +295,7 @@ class EnvironmentValidator:
     def validate_action_space(env: SameGameEnv, action: int):
         """Validate that action is within valid action space"""
         from .conftest import assert_valid_action_range
-        max_action = env.num_rows * env.num_cols - 1
+        max_action = env.config.num_rows * env.config.num_cols - 1
         assert_valid_action_range(action, 0, max_action)
 
 

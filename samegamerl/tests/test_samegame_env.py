@@ -10,21 +10,21 @@ class TestEnvironmentInitialization:
 
     def test_default_initialization(self):
         env = SameGameEnv()
-        assert env.num_colors == 4
-        assert env.num_rows == 8
-        assert env.num_cols == 8
+        assert env.config.num_colors == 4
+        assert env.config.num_rows == 8
+        assert env.config.num_cols == 8
         assert not env.done
         assert env.game is not None
 
     def test_custom_initialization(self):
         config = GameFactory.custom(num_rows=5, num_cols=6, num_colors=3)
         env = SameGameEnv(config)
-        assert env.num_colors == 3
-        assert env.num_rows == 5
-        assert env.num_cols == 6
-        assert env.game.num_colors == 3
-        assert env.game.num_rows == 5
-        assert env.game.num_cols == 6
+        assert env.config.num_colors == 3
+        assert env.config.num_rows == 5
+        assert env.config.num_cols == 6
+        assert env.game.config.num_colors == 3
+        assert env.game.config.num_rows == 5
+        assert env.game.config.num_cols == 6
 
 
 class TestObservationSpace:
@@ -104,7 +104,7 @@ class TestResetFunctionality:
         obs = env.reset()
 
         assert not env.done
-        assert obs.shape == (env.num_colors, 3, 3)
+        assert obs.shape == (env.config.num_colors, 3, 3)
         assert isinstance(obs, np.ndarray)
 
     def test_reset_with_custom_board(self):
@@ -176,7 +176,7 @@ class TestStepFunction:
             env.reset()
             obs, reward, done, info = env.step(action)
             # Should not crash and return valid values
-            assert obs.shape == (env.num_colors, 2, 2)
+            assert obs.shape == (env.config.num_colors, 2, 2)
             assert isinstance(reward, (int, float))
 
 
@@ -366,9 +366,9 @@ class TestEnvironmentIntegration:
 
         # Verify game was created with correct configuration
         assert env.game.config == config
-        assert env.game.num_rows == 2
-        assert env.game.num_cols == 2
-        assert env.game.num_colors == 4
+        assert env.game.config.num_rows == 2
+        assert env.game.config.num_cols == 2
+        assert env.game.config.num_colors == 4
 
         # Test that environment properly uses game methods
         initial_left = env.game.left
@@ -390,13 +390,13 @@ class TestEnvironmentIntegration:
             steps = 0
 
             while not done and steps < 20:  # Prevent infinite loops
-                action = steps % (env.num_rows * env.num_cols)  # Cycle through actions
+                action = steps % (env.config.num_rows * env.config.num_cols)  # Cycle through actions
                 obs, reward, done, _ = env.step(action)
                 steps += 1
 
             # Should complete without errors
             assert isinstance(obs, np.ndarray)
-            assert obs.shape == (env.num_colors, env.num_rows, env.num_cols)
+            assert obs.shape == (env.config.num_colors, env.config.num_rows, env.config.num_cols)
 
 
 class TestLegacyCompatibility:
@@ -404,12 +404,12 @@ class TestLegacyCompatibility:
 
     def test_env_initialization(self):
         env = SameGameEnv()
-        assert env.num_colors > 0
-        assert env.num_rows > 0
+        assert env.config.num_colors > 0
+        assert env.config.num_rows > 0
         assert not env.done
         obs = env.get_observation()
         assert isinstance(obs, np.ndarray)
-        assert obs.shape == (env.num_colors, env.num_rows, env.num_cols)
+        assert obs.shape == (env.config.num_colors, env.config.num_rows, env.config.num_cols)
 
     def test_reset_resets_state(self):
         env = SameGameEnv()
@@ -417,7 +417,7 @@ class TestLegacyCompatibility:
         env.reset()
         assert not env.done
         obs = env.get_observation()
-        assert obs.shape == (env.num_colors, env.num_rows, env.num_cols)
+        assert obs.shape == (env.config.num_colors, env.config.num_rows, env.config.num_cols)
 
     def test_step_returns_valid_output(self):
         env = SameGameEnv()
@@ -426,7 +426,7 @@ class TestLegacyCompatibility:
         obs, reward, done, info = env.step(action)
 
         assert isinstance(obs, np.ndarray)
-        assert obs.shape == (env.num_colors, env.num_rows, env.num_cols)
+        assert obs.shape == (env.config.num_colors, env.config.num_rows, env.config.num_cols)
         assert isinstance(reward, float)
         assert isinstance(done, bool)
         assert isinstance(info, dict)
@@ -435,20 +435,20 @@ class TestLegacyCompatibility:
         config = GameFactory.custom(num_rows=10, num_cols=10, num_colors=2)
         env = SameGameEnv(config)
 
-        if env.num_cols < 2 or env.num_rows < 2:
+        if env.config.num_cols < 2 or env.config.num_rows < 2:
             return
 
         # Simulate emptying the board
-        board = [[0 for _ in range(env.num_cols)] for _ in range(env.num_rows)]
-        board[env.num_rows - 1][env.num_cols - 1] = 1
-        board[env.num_rows - 1][env.num_cols - 2] = 1
+        board = [[0 for _ in range(env.config.num_cols)] for _ in range(env.config.num_rows)]
+        board[env.config.num_rows - 1][env.config.num_cols - 1] = 1
+        board[env.config.num_rows - 1][env.config.num_cols - 2] = 1
 
         env.reset(board=board)
 
         assert not env.done
         assert env.game.left == 2
 
-        _, reward, done, _ = env.step((env.num_cols) * (env.num_rows - 1))
+        _, reward, done, _ = env.step((env.config.num_cols) * (env.config.num_rows - 1))
 
         assert done
         assert env.game.left == 0

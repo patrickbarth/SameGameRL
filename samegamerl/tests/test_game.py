@@ -10,9 +10,9 @@ class TestGameInitialization:
 
     def test_default_initialization(self):
         game = Game(GameFactory.default())
-        assert game.num_rows == 8
-        assert game.num_cols == 8
-        assert game.num_colors == 4
+        assert game.config.num_rows == 8
+        assert game.config.num_cols == 8
+        assert game.config.num_colors == 4
         assert game.left == 64  # 8 * 8
         assert game.cols_left == 8
         assert not game.done()
@@ -20,9 +20,9 @@ class TestGameInitialization:
     def test_custom_dimensions(self):
         config = GameConfig(num_rows=5, num_cols=6, num_colors=3)
         game = Game(config)
-        assert game.num_rows == 5
-        assert game.num_cols == 6
-        assert game.num_colors == 3
+        assert game.config.num_rows == 5
+        assert game.config.num_cols == 6
+        assert game.config.num_colors == 3
         assert game.left == 30  # 5 * 6
         assert game.cols_left == 6
 
@@ -334,8 +334,8 @@ class TestDataStructureIntegrity:
         final_board = game.get_board()
 
         non_empty_cols = 0
-        for c in range(game.num_cols):
-            if any(final_board[r][c] != 0 for r in range(game.num_rows)):
+        for c in range(game.config.num_cols):
+            if any(final_board[r][c] != 0 for r in range(game.config.num_rows)):
                 non_empty_cols += 1
 
         assert game.cols_left == 2

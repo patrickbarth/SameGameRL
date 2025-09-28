@@ -9,25 +9,19 @@ from samegamerl.game.game_config import GameConfig, GameFactory
 
 class Game:
 
-    def __init__(self, config: GameConfig = None):
-        if config is None:
-            config = GameFactory.default()
-
+    def __init__(self, config: GameConfig = GameFactory.default()):
         self.config = config
-        self.num_rows = config.num_rows
-        self.num_cols = config.num_cols
-        self.num_colors = config.num_colors
-        self.neighbours = self.initialize_neighbours(self.num_rows, self.num_cols)
+        self.neighbours = self.initialize_neighbours(self.config.num_rows, self.config.num_cols)
         self.board = self.create_board(
-            [[-1 for _ in range(self.num_cols)] for _ in range(self.num_rows)]
+            [[-1 for _ in range(self.config.num_cols)] for _ in range(self.config.num_rows)]
         )
-        self.left = self.num_rows * self.num_cols
-        self.cols_left = self.num_cols
+        self.left = self.config.num_rows * self.config.num_cols
+        self.cols_left = self.config.num_cols
 
     def create_board(self, board: list[list[int]]) -> list[list[int]]:
         for row in range(len(board)):
             for col in range(len(board[row])):
-                board[row][col] = random.randint(1, self.num_colors - 1)
+                board[row][col] = random.randint(1, self.config.num_colors - 1)
 
         return board
 
@@ -37,11 +31,11 @@ class Game:
 
     def set_board(self, board: list[list[int]]):
         # Check for valid dimensions
-        if len(board) != self.num_rows:
+        if len(board) != self.config.num_rows:
             raise ValueError(
-                f"Board row count {len(board)} does not match expected {self.num_rows}"
+                f"Board row count {len(board)} does not match expected {self.config.num_rows}"
             )
-        if any(len(row) != self.num_cols for row in board):
+        if any(len(row) != self.config.num_cols for row in board):
             raise ValueError("All board rows must match expected number of columns.")
 
         # Check that all values are valid color indices
@@ -50,14 +44,14 @@ class Game:
             for val in row:
                 if val == 0:
                     empty_cells += 1
-                if not (0 <= val < self.num_colors):
+                if not (0 <= val < self.config.num_colors):
                     raise ValueError(
-                        f"Invalid color value {val}, must be in range 0 to {self.num_colors - 1}"
+                        f"Invalid color value {val}, must be in range 0 to {self.config.num_colors - 1}"
                     )
 
         # Set board and reset internal state
         self.board = board
-        self.left = self.num_cols * self.num_rows - empty_cells
+        self.left = self.config.num_cols * self.config.num_rows - empty_cells
 
         self.sink()
         self.shrink()
@@ -100,31 +94,31 @@ class Game:
         return self.board
 
     def movable(self, move):
-        x = floor(move / self.num_rows)
-        y = move % self.num_cols
+        x = floor(move / self.config.num_rows)
+        y = move % self.config.num_cols
         return (x, y)
 
     def shrink(self):
         for col in range(self.cols_left - 1):
-            while self.board[self.num_rows - 1][col] == 0 and self.cols_left > col:
+            while self.board[self.config.num_rows - 1][col] == 0 and self.cols_left > col:
                 for i in range(col, self.cols_left - 1):
                     self.shift(i)
                 self.cols_left -= 1
 
     def shift(self, column):
-        for row in range(self.num_rows):
+        for row in range(self.config.num_rows):
             self.board[row][column] = self.board[row][column + 1]
             self.board[row][column + 1] = 0
 
     def sink(self):
-        for col in range(0, self.num_cols):
+        for col in range(0, self.config.num_cols):
             white = False
             color = False
             white_spaces = 0
             color_spaces = 0
             white_start = 0
 
-            for row in range(self.num_rows - 1, -1, -1):
+            for row in range(self.config.num_rows - 1, -1, -1):
 
                 # go up until you find the first white
                 if self.board[row][col] == 0 and not color:
@@ -148,8 +142,8 @@ class Game:
 
     def get_singles(self) -> int:
         single_counter = 0
-        for row in range(self.num_rows):
-            for column in range(self.num_cols):
+        for row in range(self.config.num_rows):
+            for column in range(self.config.num_cols):
                 found = False
                 for neighbour in self.neighbours[row][column]:
                     if (
@@ -216,11 +210,11 @@ class Game:
 
     def trainable_game(self):
         layers = []
-        for color in range(self.num_colors):
+        for color in range(self.config.num_colors):
             layer = []
-            for row in range(self.num_rows):
+            for row in range(self.config.num_rows):
                 srow = []
-                for col in range(self.num_cols):
+                for col in range(self.config.num_cols):
                     if self.board[row][col] == color:
                         srow.append(1)
                     else:
