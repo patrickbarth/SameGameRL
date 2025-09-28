@@ -74,16 +74,23 @@ class Benchmark:
         if benchmark_path is None:
             filename = f"benchmark_{self.config.num_cols}_{self.config.num_rows}_{self.config.num_colors}_{self.base_seed}.pkl"
             return f"samegamerl/evaluation/benchmarks/{filename}"
-        
-        return benchmark_path if "/" in benchmark_path else f"samegamerl/evaluation/benchmarks/{benchmark_path}"
+
+        return (
+            benchmark_path
+            if "/" in benchmark_path
+            else f"samegamerl/evaluation/benchmarks/{benchmark_path}"
+        )
 
     def _is_valid_performance(self, result: BotPerformance) -> bool:
         try:
             return (
-                isinstance(result.tiles_cleared, int) and result.tiles_cleared >= 0 and
-                isinstance(result.singles_remaining, int) and result.singles_remaining >= 0 and
-                isinstance(result.moves_made, int) and result.moves_made >= 0 and
-                isinstance(result.completed, bool)
+                isinstance(result.tiles_cleared, int)
+                and result.tiles_cleared >= 0
+                and isinstance(result.singles_remaining, int)
+                and result.singles_remaining >= 0
+                and isinstance(result.moves_made, int)
+                and result.moves_made >= 0
+                and isinstance(result.completed, bool)
             )
         except AttributeError:
             return False
@@ -135,15 +142,8 @@ class Benchmark:
             # Generate unique seed for each game
             game_seed = rng.randint(0, 2**31 - 1)
 
-            # Create game with specific seed
-            game = Game(self.config)
-            # Override random board generation with seeded version
-            game_rng = random.Random(game_seed)
-            for row in range(self.config.num_rows):
-                for col in range(self.config.num_cols):
-                    game.board[row][col] = game_rng.randint(
-                        1, self.config.num_colors - 1
-                    )
+            # Create game with seeded board generation
+            game = Game(self.config, seed=game_seed)
 
             snapshot = GameSnapshot(
                 board=[row.copy() for row in game.board],
@@ -251,7 +251,7 @@ class Benchmark:
         if RAY_AVAILABLE:
             # Put bot in object store once, share across tasks
             bot_ref = ray.put(bot)
-            
+
             # Submit all tasks to Ray
             future_results = [
                 _run_bot_on_game_parallel.remote(bot_ref, game_snapshot)
@@ -262,11 +262,15 @@ class Benchmark:
             results: list[BotPerformance | None] = [None] * len(game_snapshots)
             game_id_to_index = {gs.game_id: i for i, gs in enumerate(game_snapshots)}
             remaining_futures = future_results.copy()
-            
-            with tqdm(total=len(future_results), desc=f"Running {bot_name} (parallel)") as pbar:
+
+            with tqdm(
+                total=len(future_results), desc=f"Running {bot_name} (parallel)"
+            ) as pbar:
                 while remaining_futures:
                     try:
-                        ready, remaining_futures = ray.wait(remaining_futures, num_returns=1)
+                        ready, remaining_futures = ray.wait(
+                            remaining_futures, num_returns=1
+                        )
                         for future in ready:
                             result = ray.get(future)
                             correct_index = game_id_to_index[result.game_id]
