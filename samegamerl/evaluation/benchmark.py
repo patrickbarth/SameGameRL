@@ -238,11 +238,6 @@ class Benchmark:
         game_snapshots = [self.games[game_id] for game_id in missing_game_ids]
         return self.execution_strategy.run_games(bot, game_snapshots, bot_name)
 
-    # === RESULT MANAGEMENT ===
-
-
-
-
     # === UTILITIES ===
 
     def _get_benchmark_path(self, benchmark_path: str | None) -> str:
