@@ -83,7 +83,9 @@ class Benchmark:
 
         for bot_name, bot_instance in bots.items():
             # Determine which games need to be computed for this bot
-            missing_game_ids = self._determine_missing_games(bot_name)
+            missing_game_ids = self.repository.determine_missing_games(
+                bot_name, self.results, self.num_games
+            )
 
             if not missing_game_ids:
                 # Bot already has all required results - use existing
@@ -105,7 +107,11 @@ class Benchmark:
             )
 
             # Merge new results with existing validated results
-            self._merge_results(bot_name, new_results)
+            existing_results = self.results.get(bot_name, [])
+            merged_results = self.repository.merge_results(
+                existing_results, new_results, self.num_games, bot_name
+            )
+            self.results[bot_name] = merged_results
             results[bot_name] = self.results[bot_name]
 
         # Save updated results if any new computation was done
@@ -234,25 +240,8 @@ class Benchmark:
 
     # === RESULT MANAGEMENT ===
 
-    def _determine_missing_games(self, bot_name: str) -> list[int]:
-        """Determine which games need to be computed for a bot."""
-        return self.repository.determine_missing_games(
-            bot_name, self.results, self.num_games
-        )
 
-    def _merge_results(self, bot_name: str, new_results: list[BotPerformance]) -> None:
-        """Merge new results with existing validated results for a bot."""
-        existing_results = self.results.get(bot_name, [])
-        merged_results = self.repository.merge_results(
-            existing_results, new_results, self.num_games, bot_name
-        )
-        self.results[bot_name] = merged_results
 
-    def _validate_existing_results(
-        self, bot_name: str, results: list[BotPerformance]
-    ) -> int:
-        """Validate existing results for a bot and return count of valid consecutive results."""
-        return self.repository.validate_results(bot_name, results)
 
     # === UTILITIES ===
 
@@ -268,20 +257,6 @@ class Benchmark:
             else f"samegamerl/evaluation/benchmarks/{benchmark_path}"
         )
 
-    def _is_valid_performance(self, result: BotPerformance) -> bool:
-        """Check if a performance result has valid data (kept for backwards compatibility)."""
-        try:
-            return (
-                isinstance(result.tiles_cleared, int)
-                and result.tiles_cleared >= 0
-                and isinstance(result.singles_remaining, int)
-                and result.singles_remaining >= 0
-                and isinstance(result.moves_made, int)
-                and result.moves_made >= 0
-                and isinstance(result.completed, bool)
-            )
-        except AttributeError:
-            return False
 
     def __len__(self) -> int:
         """Number of games in benchmark."""
