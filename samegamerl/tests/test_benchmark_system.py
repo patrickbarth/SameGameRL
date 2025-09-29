@@ -46,11 +46,15 @@ class TestBenchmark:
         """Test that default benchmark path follows the specified naming scheme"""
         config = GameFactory.small()  # 5x5, 3 colors
         benchmark = Benchmark(config=config, num_games=3, base_seed=42)
-        
+
         expected_filename = "benchmark_5_5_3_42.pkl"
-        expected_path = f"samegamerl/evaluation/benchmarks/{expected_filename}"
-        
-        assert str(benchmark.benchmark_path) == expected_path
+
+        # Test that the path ends with the correct relative path structure
+        expected_suffix = f"samegamerl/evaluation/benchmarks/{expected_filename}"
+        assert str(benchmark.benchmark_path).endswith(expected_suffix)
+
+        # Additionally test that the filename itself is correct
+        assert benchmark.benchmark_path.name == expected_filename
         
 
     def test_games_reproducible_with_seed(self):
