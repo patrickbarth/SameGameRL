@@ -15,7 +15,9 @@ from samegamerl.evaluation.benchmark_data import (
     BenchmarkData,
 )
 from samegamerl.evaluation.benchmark_repository import BenchmarkRepository
-from samegamerl.evaluation.benchmark_execution_strategies import ExecutionStrategyFactory
+from samegamerl.evaluation.benchmark_execution_strategies import (
+    ExecutionStrategyFactory,
+)
 
 
 class Benchmark:
@@ -177,7 +179,7 @@ class Benchmark:
             LargestGroupBot.name: LargestGroupBot(),
             GreedySinglesBot.name: GreedySinglesBot(),
         }
-    
+
     # === GAME MANAGEMENT ===
 
     def _generate_games(self) -> None:
@@ -243,18 +245,29 @@ class Benchmark:
     def _get_benchmark_path(self, benchmark_path: str | None) -> str:
         """Generate benchmark file path from configuration."""
         if benchmark_path is None:
-            filename = f"benchmark_{self.config.num_cols}_{self.config.num_rows}_{self.config.num_colors}_{self.base_seed}.pkl"
-            return f"samegamerl/evaluation/benchmarks/{filename}"
+            filename = f"benchmark_{self.config.num_rows}_{self.config.num_cols}_{self.config.num_colors}_{self.base_seed}.pkl"
+            # Use absolute path relative to this file's location
+            project_root = Path(
+                __file__
+            ).parent.parent.parent  # Up from samegamerl/evaluation/
+            return str(
+                project_root / "samegamerl" / "evaluation" / "benchmarks" / filename
+            )
 
-        return (
-            benchmark_path
-            if "/" in benchmark_path
-            else f"samegamerl/evaluation/benchmarks/{benchmark_path}"
-        )
-
+        # Handle custom benchmark paths
+        if "/" in benchmark_path:
+            return benchmark_path
+        else:
+            # Custom filename in default directory
+            project_root = Path(__file__).parent.parent.parent
+            return str(
+                project_root
+                / "samegamerl"
+                / "evaluation"
+                / "benchmarks"
+                / benchmark_path
+            )
 
     def __len__(self) -> int:
         """Number of games in benchmark."""
         return len(self.games)
-
-

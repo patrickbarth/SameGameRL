@@ -61,7 +61,9 @@ def evaluate_agent(agent: BaseAgent, config: GameConfig, num_games: int) -> None
         print()
 
 
-def benchmark_builtin_bots(config: GameConfig, num_games: int) -> None:
+def benchmark_builtin_bots(
+    config: GameConfig, num_games: int, verbose=True
+) -> dict[str, dict[str, float]]:
     """
     Benchmark all built-in bots to get baseline performance.
 
@@ -69,36 +71,44 @@ def benchmark_builtin_bots(config: GameConfig, num_games: int) -> None:
         config: Game configuration to use
         num_games: Number of games to play
     """
-    print("Built-in Bots Benchmark")
-    print("=" * 40)
-    print(f"Config: {config.num_rows}x{config.num_cols}, {config.num_colors} colors")
-    print(f"Games: {num_games}")
-    print()
+    if verbose:
+        print("Built-in Bots Benchmark")
+        print("=" * 40)
+        print(
+            f"Config: {config.num_rows}x{config.num_cols}, {config.num_colors} colors"
+        )
+        print(f"Games: {num_games}")
+        print()
 
     benchmark = Benchmark(config=config, num_games=num_games)
 
-    print("Running built-in bots...")
+    if verbose:
+        print("Running built-in bots...")
+
     results = benchmark.run_bots(benchmark.built_in_bots())
 
     # Compute comparison stats
     comparison = _compute_stats(results)
 
     # Display results
-    print("\nBuilt-in Bot Performance:")
-    print("-" * 30)
+    if verbose:
+        print("\nBuilt-in Bot Performance:")
+        print("-" * 30)
 
-    # Sort by completion rate
-    sorted_bots = sorted(
-        comparison.items(), key=lambda x: x[1]["completion_rate"], reverse=True
-    )
+        # Sort by completion rate
+        sorted_bots = sorted(
+            comparison.items(), key=lambda x: x[1]["completion_rate"], reverse=True
+        )
 
-    for i, (bot_name, stats) in enumerate(sorted_bots, 1):
-        print(f"{i}. {bot_name}:")
-        print(f"   Completion rate: {stats['completion_rate']:.1%}")
-        print(f"   Avg tiles cleared: {stats['avg_tiles_cleared']:.1f}")
-        print(f"   Avg moves made: {stats['avg_moves_made']:.1f}")
-        print(f"   Avg singles remaining: {stats['avg_singles_remaining']:.1f}")
-        print()
+        for i, (bot_name, stats) in enumerate(sorted_bots, 1):
+            print(f"{i}. {bot_name}:")
+            print(f"   Completion rate: {stats['completion_rate']:.1%}")
+            print(f"   Avg tiles cleared: {stats['avg_tiles_cleared']:.1f}")
+            print(f"   Avg moves made: {stats['avg_moves_made']:.1f}")
+            print(f"   Avg singles remaining: {stats['avg_singles_remaining']:.1f}")
+            print()
+
+    return comparison
 
 
 def _compute_stats(
