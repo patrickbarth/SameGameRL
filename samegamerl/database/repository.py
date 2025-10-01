@@ -5,7 +5,7 @@ from typing import Any, Optional
 from sqlalchemy.orm import Session
 
 from samegamerl.database.connection import db_manager
-from samegamerl.database.models import Bot, BenchmarkSet, Game, GameConfig, GameResult
+from samegamerl.database.models import Bot, GamePool, Game, GameConfig, GameResult
 
 
 class GameConfigRepository:
@@ -37,43 +37,55 @@ class GameConfigRepository:
         return self.session.query(GameConfig).filter_by(id=config_id).first()
 
 
-class BenchmarkSetRepository:
+class GamePoolRepository:
     def __init__(self, session: Session):
         self.session = session
 
-    def find_or_create(self, config: GameConfig, num_games: int, base_seed: int) -> BenchmarkSet:
-        """Find existing benchmark set or create new one."""
-        benchmark_set = (
-            self.session.query(BenchmarkSet)
-            .filter_by(config_id=config.id, num_games=num_games, base_seed=base_seed)
+    def find_or_create(self, config: GameConfig, base_seed: int, max_games: int) -> GamePool:
+        """Find existing game pool or create new one."""
+        pool = (
+            self.session.query(GamePool)
+            .filter_by(config_id=config.id, base_seed=base_seed)
             .first()
         )
 
-        if not benchmark_set:
-            benchmark_set = BenchmarkSet(
+        if not pool:
+            pool = GamePool(
                 config_id=config.id,
-                num_games=num_games,
-                base_seed=base_seed
+                base_seed=base_seed,
+                max_games=max_games
             )
-            self.session.add(benchmark_set)
+            self.session.add(pool)
+            self.session.flush()
+        elif pool.max_games < max_games:
+            # Extend existing pool if we need more games
+            pool.max_games = max_games
             self.session.flush()
 
-        return benchmark_set
+        return pool
 
-    def get_by_id(self, set_id: int) -> Optional[BenchmarkSet]:
-        """Get benchmark set by ID."""
-        return self.session.query(BenchmarkSet).filter_by(id=set_id).first()
+    def get_by_id(self, pool_id: int) -> Optional[GamePool]:
+        """Get game pool by ID."""
+        return self.session.query(GamePool).filter_by(id=pool_id).first()
+
+    def get_by_config_and_seed(self, config_id: int, base_seed: int) -> Optional[GamePool]:
+        """Get game pool by config and seed."""
+        return (
+            self.session.query(GamePool)
+            .filter_by(config_id=config_id, base_seed=base_seed)
+            .first()
+        )
 
 
 class GameRepository:
     def __init__(self, session: Session):
         self.session = session
 
-    def create_game(self, benchmark_set: BenchmarkSet, game_index: int,
+    def create_game(self, pool: GamePool, game_index: int,
                    board_state: list[list[int]], seed: int) -> Game:
-        """Create a new game."""
+        """Create a new game in a pool."""
         game = Game(
-            benchmark_set_id=benchmark_set.id,
+            pool_id=pool.id,
             game_index=game_index,
             board_state=board_state,  # SQLAlchemy will JSON-serialize this
             seed=seed
@@ -82,14 +94,31 @@ class GameRepository:
         self.session.flush()
         return game
 
-    def get_games_for_benchmark(self, benchmark_set_id: int) -> list[Game]:
-        """Get all games for a benchmark set."""
-        return (
+    def get_games_for_pool(self, pool_id: int, limit: int = None) -> list[Game]:
+        """Get games for a pool, optionally limited to first N games."""
+        query = (
             self.session.query(Game)
-            .filter_by(benchmark_set_id=benchmark_set_id)
+            .filter_by(pool_id=pool_id)
             .order_by(Game.game_index)
-            .all()
         )
+
+        if limit is not None:
+            query = query.limit(limit)
+
+        return query.all()
+
+    def get_benchmark_games(self, config_id: int, base_seed: int, num_games: int) -> list[Game]:
+        """Get N games for a benchmark (efficient reuse pattern)."""
+        pool = (
+            self.session.query(GamePool)
+            .filter_by(config_id=config_id, base_seed=base_seed)
+            .first()
+        )
+
+        if not pool:
+            return []
+
+        return self.get_games_for_pool(pool.id, limit=num_games)
 
 
 class BotRepository:
@@ -135,18 +164,35 @@ class GameResultRepository:
         """Get all results for a specific bot."""
         return self.session.query(GameResult).filter_by(bot_id=bot_id).all()
 
-    def get_results_for_benchmark(self, benchmark_set_id: int, bot_id: int = None) -> list[GameResult]:
-        """Get results for a benchmark set, optionally filtered by bot."""
+    def get_results_for_pool(self, pool_id: int, bot_id: int = None, limit: int = None) -> list[GameResult]:
+        """Get results for a game pool, optionally filtered by bot and limited to N games."""
         query = (
             self.session.query(GameResult)
             .join(Game)
-            .filter(Game.benchmark_set_id == benchmark_set_id)
+            .filter(Game.pool_id == pool_id)
+            .order_by(Game.game_index)
         )
 
         if bot_id:
             query = query.filter(GameResult.bot_id == bot_id)
 
+        if limit:
+            query = query.limit(limit)
+
         return query.all()
+
+    def get_benchmark_results(self, config_id: int, base_seed: int, num_games: int, bot_id: int = None) -> list[GameResult]:
+        """Get results for a benchmark (first N games), optionally filtered by bot."""
+        pool = (
+            self.session.query(GamePool)
+            .filter_by(config_id=config_id, base_seed=base_seed)
+            .first()
+        )
+
+        if not pool:
+            return []
+
+        return self.get_results_for_pool(pool.id, bot_id=bot_id, limit=num_games)
 
 
 class DatabaseRepository:
@@ -155,7 +201,7 @@ class DatabaseRepository:
     def __init__(self, session: Session = None):
         self.session = session or db_manager.get_session()
         self.game_configs = GameConfigRepository(self.session)
-        self.benchmark_sets = BenchmarkSetRepository(self.session)
+        self.game_pools = GamePoolRepository(self.session)
         self.games = GameRepository(self.session)
         self.bots = BotRepository(self.session)
         self.results = GameResultRepository(self.session)

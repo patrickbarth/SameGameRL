@@ -15,27 +15,27 @@ CREATE TABLE IF NOT EXISTS game_configs (
     UNIQUE(num_rows, num_cols, num_colors)
 );
 
--- Benchmark sets (groups of games for comparison)
-CREATE TABLE IF NOT EXISTS benchmark_sets (
+-- Game pools (collections of generated games for reuse)
+CREATE TABLE IF NOT EXISTS game_pools (
     id SERIAL PRIMARY KEY,
     config_id INTEGER REFERENCES game_configs(id),
-    num_games INTEGER NOT NULL,
     base_seed INTEGER NOT NULL,
+    max_games INTEGER NOT NULL,
     created_at TIMESTAMP DEFAULT NOW(),
 
-    UNIQUE(config_id, base_seed, num_games)
+    UNIQUE(config_id, base_seed)
 );
 
--- Individual games within benchmark sets
+-- Individual games within game pools
 CREATE TABLE IF NOT EXISTS games (
     id SERIAL PRIMARY KEY,
-    benchmark_set_id INTEGER REFERENCES benchmark_sets(id),
+    pool_id INTEGER REFERENCES game_pools(id),
     game_index INTEGER NOT NULL,
     board_state JSON NOT NULL,
     seed INTEGER NOT NULL,
     created_at TIMESTAMP DEFAULT NOW(),
 
-    UNIQUE(benchmark_set_id, game_index)
+    UNIQUE(pool_id, game_index)
 );
 
 -- Bot definitions
@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS game_results (
 );
 
 -- Basic indexes for common queries
-CREATE INDEX IF NOT EXISTS idx_games_benchmark_set ON games(benchmark_set_id);
+CREATE INDEX IF NOT EXISTS idx_games_pool ON games(pool_id);
+CREATE INDEX IF NOT EXISTS idx_games_pool_index ON games(pool_id, game_index);
 CREATE INDEX IF NOT EXISTS idx_game_results_game_bot ON game_results(game_id, bot_id);
 CREATE INDEX IF NOT EXISTS idx_game_results_bot ON game_results(bot_id);
