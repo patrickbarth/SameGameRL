@@ -46,10 +46,6 @@ class SequentialExecutionStrategy(ExecutionStrategy):
 class ParallelExecutionStrategy(ExecutionStrategy):
     """Execute bot games in parallel using Ray."""
 
-    def __init__(self, ray_num_cpus: int | None = None):
-        self.ray_num_cpus = ray_num_cpus
-        self._ray_initialized = False
-
     def run_games(
         self, bot: BenchmarkBotBase, game_snapshots: list[GameSnapshot], bot_name: str
     ) -> list[BotPerformance]:
@@ -59,18 +55,12 @@ class ParallelExecutionStrategy(ExecutionStrategy):
             sequential_strategy = SequentialExecutionStrategy()
             return sequential_strategy.run_games(bot, game_snapshots, bot_name)
 
-        # Initialize Ray if needed
-        self._initialize_ray()
-
         if not ray.is_initialized():
-            # Fallback to sequential if Ray initialization failed
+            # Fallback to sequential if Ray is not running
             sequential_strategy = SequentialExecutionStrategy()
             return sequential_strategy.run_games(bot, game_snapshots, bot_name)
 
-        try:
-            return self._run_games_parallel(bot, game_snapshots, bot_name)
-        finally:
-            self._cleanup_ray()
+        return self._run_games_parallel(bot, game_snapshots, bot_name)
 
     def _run_games_parallel(
         self, bot: BenchmarkBotBase, game_snapshots: list[GameSnapshot], bot_name: str
@@ -112,39 +102,6 @@ class ParallelExecutionStrategy(ExecutionStrategy):
         # Filter out None values in case of failures
         return [r for r in results if r is not None]
 
-    def _initialize_ray(self) -> bool:
-        """Initialize Ray if configured and available."""
-        if self._ray_initialized:
-            return True
-
-        try:
-            if ray.is_initialized():
-                # Ray is already initialized, use existing instance
-                self._ray_initialized = True
-                return True
-
-            # Initialize Ray with optional CPU limit
-            init_kwargs = {"ignore_reinit_error": True}
-            if self.ray_num_cpus is not None:
-                init_kwargs["num_cpus"] = self.ray_num_cpus
-
-            ray.init(**init_kwargs)
-            self._ray_initialized = True
-            return True
-
-        except Exception as e:
-            print(f"Warning: Failed to initialize Ray: {e}")
-            print("Falling back to sequential execution")
-            return False
-
-    def _cleanup_ray(self) -> None:
-        """Clean up Ray resources if we initialized them."""
-        if self._ray_initialized and ray.is_initialized():
-            try:
-                ray.shutdown()
-                self._ray_initialized = False
-            except Exception as e:
-                print(f"Warning: Error during Ray cleanup: {e}")
 
 
 class ExecutionStrategyFactory:
@@ -156,7 +113,7 @@ class ExecutionStrategyFactory:
     ) -> ExecutionStrategy:
         """Create appropriate execution strategy based on configuration."""
         if use_ray and RAY_AVAILABLE:
-            return ParallelExecutionStrategy(ray_num_cpus)
+            return ParallelExecutionStrategy()
         else:
             return SequentialExecutionStrategy()
 
