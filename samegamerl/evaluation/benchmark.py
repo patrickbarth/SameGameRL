@@ -162,7 +162,7 @@ class Benchmark:
         self,
         agent,  # DqnAgent type hint avoided to prevent circular import
         save_results: bool = False,
-    ) -> dict[str, list[BotPerformance]]:
+    ) -> list[BotPerformance]:
         """Evaluate a DQN agent on all benchmark games.
 
         Args:
@@ -200,7 +200,7 @@ class Benchmark:
             else:
                 print("Results computed but not saved (ephemeral evaluation)")
 
-            return {agent_name: results}
+            return results
 
         finally:
             self._cleanup_ray()

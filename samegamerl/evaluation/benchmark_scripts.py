@@ -13,11 +13,8 @@ from samegamerl.agents.base_agent import BaseAgent
 from samegamerl.evaluation.benchmark_data import BotPerformance
 
 
-def evaluate_agent(
-    agent: BaseAgent,
-    config: GameConfig,
-    num_games: int,
-    storage_type: str = "pickle"
+def benchmark_agent(
+    agent: BaseAgent, config: GameConfig, num_games: int, storage_type: str = "pickle"
 ) -> None:
     """
     Evaluate a custom agent against built-in bots for comparison.
@@ -30,9 +27,7 @@ def evaluate_agent(
     """
     print(f"Evaluating Custom Agent")
     print("=" * 40)
-    print(f"Config: {config.num_rows}x{config.num_cols}, {config.num_colors} colors")
     print(f"Games: {num_games}")
-    print(f"Storage: {storage_type}")
     print()
 
     benchmark = Benchmark(config=config, num_games=num_games, storage_type=storage_type)
@@ -42,8 +37,8 @@ def evaluate_agent(
     builtin_results = benchmark.run_bots(benchmark.built_in_bots())
 
     # Run custom agent
-    print("Running custom agent...")
-    custom_results = benchmark.run_bots({"CustomAgent": agent})
+    print("Running agent...")
+    custom_results = {agent.model_name: benchmark.evaluate_agent(agent)}
 
     # Compute comparison stats
     all_results = {**builtin_results, **custom_results}
@@ -59,8 +54,7 @@ def evaluate_agent(
     )
 
     for i, (bot_name, stats) in enumerate(sorted_bots, 1):
-        marker = " ← Your Agent" if bot_name == "CustomAgent" else ""
-        print(f"{i}. {bot_name}:{marker}")
+        print(f"{i}. {bot_name}")
         print(f"   Completion rate: {stats['completion_rate']:.1%}")
         print(f"   Avg tiles cleared: {stats['avg_tiles_cleared']:.1f}")
         print(f"   Avg moves made: {stats['avg_moves_made']:.1f}")
@@ -72,7 +66,7 @@ def benchmark_builtin_bots(
     config: GameConfig,
     num_games: int,
     verbose: bool = True,
-    storage_type: str = "pickle"
+    storage_type: str = "pickle",
 ) -> dict[str, dict[str, float]]:
     """
     Benchmark all built-in bots to get baseline performance.

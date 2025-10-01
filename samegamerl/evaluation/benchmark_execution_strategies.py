@@ -103,7 +103,6 @@ class ParallelExecutionStrategy(ExecutionStrategy):
         return [r for r in results if r is not None]
 
 
-
 class ExecutionStrategyFactory:
     """Factory for creating execution strategies."""
 
@@ -131,7 +130,7 @@ def _run_bot_on_game_sequential(
 
     initial_tiles = game.left
     moves_made = 0
-    max_moves = 500  # Safety limit
+    max_moves = 100  # Safety limit
 
     # Play the game until completion or no valid moves
     while moves_made < max_moves:

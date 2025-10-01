@@ -3,6 +3,8 @@ import numpy as np
 
 
 class BaseAgent(ABC):
+    model_name: str
+
     @abstractmethod
     def act(self, observation: np.ndarray) -> int:
         pass

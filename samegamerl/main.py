@@ -12,7 +12,7 @@ from samegamerl.game.game_config import GameFactory
 pygame.init()
 
 # Use medium game configuration by default
-config = GameFactory.custom(num_rows=7, num_cols=3, num_colors=4)
+config = GameFactory.large()
 
 # starting the game_logic
 game = Game(config)
