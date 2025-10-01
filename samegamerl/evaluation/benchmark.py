@@ -6,6 +6,7 @@ from pathlib import Path
 # Optional Ray import for parallelization
 try:
     import ray
+
     RAY_AVAILABLE = True
 except ImportError:
     RAY_AVAILABLE = False
@@ -21,10 +22,13 @@ from samegamerl.evaluation.benchmark_data import (
     BotPerformance,
     BenchmarkData,
 )
-from samegamerl.evaluation.benchmark_repository_factory import BenchmarkRepositoryFactory
+from samegamerl.evaluation.benchmark_repository_factory import (
+    BenchmarkRepositoryFactory,
+)
 from samegamerl.evaluation.benchmark_execution_strategies import (
     ExecutionStrategyFactory,
 )
+from samegamerl.agents.dqn_agent_benchmark_adapter import DqnAgentBenchmarkAdapter
 
 
 class Benchmark:
@@ -67,17 +71,16 @@ class Benchmark:
         if storage_type == "pickle":
             self.benchmark_path = Path(self._get_benchmark_path(benchmark_path))
             self.repository = BenchmarkRepositoryFactory.create(
-                storage_type="pickle",
-                benchmark_path=self.benchmark_path
+                storage_type="pickle", benchmark_path=self.benchmark_path
             )
         elif storage_type == "database":
             self.repository = BenchmarkRepositoryFactory.create(
-                storage_type="database",
-                config=config,
-                base_seed=base_seed
+                storage_type="database", config=config, base_seed=base_seed
             )
         else:
-            raise ValueError(f"Invalid storage_type '{storage_type}'. Must be 'pickle' or 'database'")
+            raise ValueError(
+                f"Invalid storage_type '{storage_type}'. Must be 'pickle' or 'database'"
+            )
 
         self.games: list[GameSnapshot] = []
         self.results: dict[str, list[BotPerformance]] = {}
@@ -155,6 +158,53 @@ class Benchmark:
             # Clean up Ray if we initialized it
             self._cleanup_ray()
 
+    def evaluate_agent(
+        self,
+        agent,  # DqnAgent type hint avoided to prevent circular import
+        save_results: bool = False,
+    ) -> dict[str, list[BotPerformance]]:
+        """Evaluate a DQN agent on all benchmark games.
+
+        Args:
+            agent: DqnAgent instance to evaluate
+            save_results: If True, persist results to benchmark storage.
+                         If False, return ephemeral results only (default).
+
+        Returns:
+            List of performance results for all games
+        """
+
+        # Create adapter with automatic versioning
+        adapter = DqnAgentBenchmarkAdapter(agent)
+        agent_name = adapter.name
+
+        mode_str = "persistent" if save_results else "ephemeral"
+        print(f"Evaluating agent: {agent_name} ({mode_str} mode)")
+
+        # Initialize Ray if needed
+        self._initialize_ray()
+
+        try:
+            # Ensure games are generated
+            self._generate_games()
+
+            # Run agent on all games
+            game_ids = list(range(self.num_games))
+            results = self._run_games_for_bot(adapter, game_ids, agent_name)
+
+            # Persist results if requested
+            if save_results:
+                self.results[agent_name] = results
+                self.save()
+                print(f"Results saved for {agent_name}")
+            else:
+                print("Results computed but not saved (ephemeral evaluation)")
+
+            return {agent_name: results}
+
+        finally:
+            self._cleanup_ray()
+
     def get_game(self, game_id: int) -> GameSnapshot:
         """Get a specific game by ID."""
         if not self.games:
@@ -174,8 +224,7 @@ class Benchmark:
             if self.storage_type != "pickle":
                 raise ValueError("Custom filepath only supported for pickle storage")
             repository = BenchmarkRepositoryFactory.create(
-                storage_type="pickle",
-                benchmark_path=Path(filepath)
+                storage_type="pickle", benchmark_path=Path(filepath)
             )
 
         data = BenchmarkData(
@@ -188,7 +237,9 @@ class Benchmark:
         repository.save_data(data)
 
     @classmethod
-    def load_from_file(cls, filepath: str, storage_type: str = "pickle") -> "Benchmark | None":
+    def load_from_file(
+        cls, filepath: str, storage_type: str = "pickle"
+    ) -> "Benchmark | None":
         """Load benchmark from storage, creating new instance with loaded config.
 
         Args:
@@ -197,8 +248,7 @@ class Benchmark:
         """
         if storage_type == "pickle":
             repository = BenchmarkRepositoryFactory.create(
-                storage_type="pickle",
-                benchmark_path=Path(filepath)
+                storage_type="pickle", benchmark_path=Path(filepath)
             )
             data = repository.load_data()
 
@@ -211,7 +261,7 @@ class Benchmark:
                 num_games=data.num_games,
                 base_seed=data.base_seed,
                 benchmark_path=filepath,
-                storage_type="pickle"
+                storage_type="pickle",
             )
 
             # Load the data
@@ -221,7 +271,9 @@ class Benchmark:
             return benchmark
 
         else:
-            raise ValueError("load_from_file with database storage not yet implemented. Use load_from_database() instead.")
+            raise ValueError(
+                "load_from_file with database storage not yet implemented. Use load_from_database() instead."
+            )
 
     def built_in_bots(self) -> dict[str, BenchmarkBotBase]:
         """Create instances of all built-in benchmark bots."""
