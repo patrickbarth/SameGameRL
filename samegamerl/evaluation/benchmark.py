@@ -3,6 +3,13 @@
 import random
 from pathlib import Path
 
+# Optional Ray import for parallelization
+try:
+    import ray
+    RAY_AVAILABLE = True
+except ImportError:
+    RAY_AVAILABLE = False
+
 from samegamerl.game.game import Game
 from samegamerl.game.game_config import GameConfig
 from samegamerl.agents.benchmark_bot_base import BenchmarkBotBase
@@ -14,7 +21,7 @@ from samegamerl.evaluation.benchmark_data import (
     BotPerformance,
     BenchmarkData,
 )
-from samegamerl.evaluation.benchmark_repository import BenchmarkRepository
+from samegamerl.evaluation.benchmark_repository_factory import BenchmarkRepositoryFactory
 from samegamerl.evaluation.benchmark_execution_strategies import (
     ExecutionStrategyFactory,
 )
@@ -41,19 +48,37 @@ class Benchmark:
         benchmark_path: str | None = None,
         use_ray: bool = True,
         ray_num_cpus: int | None = None,
+        storage_type: str = "pickle",
     ):
         self.num_games = num_games
         self.config = config
         self.base_seed = base_seed
+        self.storage_type = storage_type
+        self.use_ray = use_ray and RAY_AVAILABLE
+        self.ray_num_cpus = ray_num_cpus
+        self._ray_initialized = False
 
         # Set up execution strategy
         self.execution_strategy = ExecutionStrategyFactory.create_strategy(
             use_ray, ray_num_cpus
         )
 
-        # Set up benchmark path and repository
-        self.benchmark_path = Path(self._get_benchmark_path(benchmark_path))
-        self.repository = BenchmarkRepository(self.benchmark_path)
+        # Set up repository based on storage type
+        if storage_type == "pickle":
+            self.benchmark_path = Path(self._get_benchmark_path(benchmark_path))
+            self.repository = BenchmarkRepositoryFactory.create(
+                storage_type="pickle",
+                benchmark_path=self.benchmark_path
+            )
+        elif storage_type == "database":
+            self.repository = BenchmarkRepositoryFactory.create(
+                storage_type="database",
+                config=config,
+                base_seed=base_seed
+            )
+        else:
+            raise ValueError(f"Invalid storage_type '{storage_type}'. Must be 'pickle' or 'database'")
+
         self.games: list[GameSnapshot] = []
         self.results: dict[str, list[BotPerformance]] = {}
 
@@ -74,53 +99,61 @@ class Benchmark:
         if bots is None:
             bots = self.built_in_bots()
 
-        # Try to load existing results for lazy loading
-        self._load_existing_results()
+        # Initialize Ray if needed for parallel execution
+        self._initialize_ray()
 
-        # Ensure games are generated
-        self._generate_games()
+        try:
+            # Try to load existing results for lazy loading
+            self._load_existing_results()
 
-        results = {}
-        any_new_computation = False
+            # Ensure games are generated
+            self._generate_games()
 
-        for bot_name, bot_instance in bots.items():
-            # Determine which games need to be computed for this bot
-            missing_game_ids = self.repository.determine_missing_games(
-                bot_name, self.results, self.num_games
-            )
+            results = {}
+            any_new_computation = False
 
-            if not missing_game_ids:
-                # Bot already has all required results - use existing
-                print(
-                    f"{bot_name}: Using existing results for all {self.num_games} games"
+            for bot_name, bot_instance in bots.items():
+                # Determine which games need to be computed for this bot
+                missing_game_ids = self.repository.determine_missing_games(
+                    bot_name, self.results, self.num_games
                 )
-                results[bot_name] = self.results[bot_name][: self.num_games]
-                continue
 
-            # Run bot only on missing games
-            print(
-                f"{bot_name}: Computing {len(missing_game_ids)} missing games (total {self.num_games})"
-            )
-            any_new_computation = True
+                if not missing_game_ids:
+                    # Bot already has all required results - use existing
+                    print(
+                        f"{bot_name}: Using existing results for all {self.num_games} games"
+                    )
+                    results[bot_name] = self.results[bot_name][: self.num_games]
+                    continue
 
-            # Run games using execution strategy
-            new_results = self._run_games_for_bot(
-                bot_instance, missing_game_ids, bot_name
-            )
+                # Run bot only on missing games
+                print(
+                    f"{bot_name}: Computing {len(missing_game_ids)} missing games (total {self.num_games})"
+                )
+                any_new_computation = True
 
-            # Merge new results with existing validated results
-            existing_results = self.results.get(bot_name, [])
-            merged_results = self.repository.merge_results(
-                existing_results, new_results, self.num_games, bot_name
-            )
-            self.results[bot_name] = merged_results
-            results[bot_name] = self.results[bot_name]
+                # Run games using execution strategy
+                new_results = self._run_games_for_bot(
+                    bot_instance, missing_game_ids, bot_name
+                )
 
-        # Save updated results if any new computation was done
-        if any_new_computation:
-            self.save()
+                # Merge new results with existing validated results
+                existing_results = self.results.get(bot_name, [])
+                merged_results = self.repository.merge_results(
+                    existing_results, new_results, self.num_games, bot_name
+                )
+                self.results[bot_name] = merged_results
+                results[bot_name] = self.results[bot_name]
 
-        return results
+            # Save updated results if any new computation was done
+            if any_new_computation:
+                self.save()
+
+            return results
+
+        finally:
+            # Clean up Ray if we initialized it
+            self._cleanup_ray()
 
     def get_game(self, game_id: int) -> GameSnapshot:
         """Get a specific game by ID."""
@@ -132,13 +165,18 @@ class Benchmark:
         raise IndexError(f"Game ID {game_id} out of range")
 
     def save(self, filepath: str | None = None) -> None:
-        """Save benchmark data to disk."""
+        """Save benchmark data to storage."""
         if filepath is None:
             # Use default repository
             repository = self.repository
         else:
-            # Use custom filepath
-            repository = BenchmarkRepository(Path(filepath))
+            # Use custom filepath - only works for pickle storage
+            if self.storage_type != "pickle":
+                raise ValueError("Custom filepath only supported for pickle storage")
+            repository = BenchmarkRepositoryFactory.create(
+                storage_type="pickle",
+                benchmark_path=Path(filepath)
+            )
 
         data = BenchmarkData(
             games=self.games,
@@ -150,27 +188,40 @@ class Benchmark:
         repository.save_data(data)
 
     @classmethod
-    def load_from_file(cls, filepath: str) -> "Benchmark | None":
-        """Load benchmark from file, creating new instance with loaded config."""
-        repository = BenchmarkRepository(Path(filepath))
-        data = repository.load_data()
+    def load_from_file(cls, filepath: str, storage_type: str = "pickle") -> "Benchmark | None":
+        """Load benchmark from storage, creating new instance with loaded config.
 
-        if data is None:
-            return None
+        Args:
+            filepath: Path to pickle file (only used for pickle storage)
+            storage_type: Either "pickle" or "database"
+        """
+        if storage_type == "pickle":
+            repository = BenchmarkRepositoryFactory.create(
+                storage_type="pickle",
+                benchmark_path=Path(filepath)
+            )
+            data = repository.load_data()
 
-        # Create benchmark with loaded config
-        benchmark = cls(
-            config=data.config,
-            num_games=data.num_games,
-            base_seed=data.base_seed,
-            benchmark_path=filepath,
-        )
+            if data is None:
+                return None
 
-        # Load the data
-        benchmark.games = data.games
-        benchmark.results = data.results
+            # Create benchmark with loaded config
+            benchmark = cls(
+                config=data.config,
+                num_games=data.num_games,
+                base_seed=data.base_seed,
+                benchmark_path=filepath,
+                storage_type="pickle"
+            )
 
-        return benchmark
+            # Load the data
+            benchmark.games = data.games
+            benchmark.results = data.results
+
+            return benchmark
+
+        else:
+            raise ValueError("load_from_file with database storage not yet implemented. Use load_from_database() instead.")
 
     def built_in_bots(self) -> dict[str, BenchmarkBotBase]:
         """Create instances of all built-in benchmark bots."""
@@ -267,6 +318,43 @@ class Benchmark:
                 / "benchmarks"
                 / benchmark_path
             )
+
+    # === RAY MANAGEMENT ===
+
+    def _initialize_ray(self) -> bool:
+        """Initialize Ray if configured and available."""
+        if not self.use_ray or self._ray_initialized:
+            return self.use_ray
+
+        try:
+            if ray.is_initialized():
+                # Ray is already initialized, use existing instance
+                self._ray_initialized = True
+                return True
+
+            # Initialize Ray with optional CPU limit
+            init_kwargs = {"ignore_reinit_error": True}
+            if self.ray_num_cpus is not None:
+                init_kwargs["num_cpus"] = self.ray_num_cpus
+
+            ray.init(**init_kwargs)
+            self._ray_initialized = True
+            return True
+
+        except Exception as e:
+            print(f"Warning: Failed to initialize Ray: {e}")
+            print("Falling back to sequential execution")
+            self.use_ray = False
+            return False
+
+    def _cleanup_ray(self) -> None:
+        """Clean up Ray resources if we initialized them."""
+        if self._ray_initialized and ray.is_initialized():
+            try:
+                ray.shutdown()
+                self._ray_initialized = False
+            except Exception as e:
+                print(f"Warning: Error during Ray cleanup: {e}")
 
     def __len__(self) -> int:
         """Number of games in benchmark."""
