@@ -13,7 +13,12 @@ from samegamerl.agents.base_agent import BaseAgent
 from samegamerl.evaluation.benchmark_data import BotPerformance
 
 
-def evaluate_agent(agent: BaseAgent, config: GameConfig, num_games: int) -> None:
+def evaluate_agent(
+    agent: BaseAgent,
+    config: GameConfig,
+    num_games: int,
+    storage_type: str = "pickle"
+) -> None:
     """
     Evaluate a custom agent against built-in bots for comparison.
 
@@ -21,14 +26,16 @@ def evaluate_agent(agent: BaseAgent, config: GameConfig, num_games: int) -> None
         agent: Custom agent instance to evaluate
         config: Game configuration to use
         num_games: Number of games to play
+        storage_type: Storage backend - "pickle" (default) or "database"
     """
     print(f"Evaluating Custom Agent")
     print("=" * 40)
     print(f"Config: {config.num_rows}x{config.num_cols}, {config.num_colors} colors")
     print(f"Games: {num_games}")
+    print(f"Storage: {storage_type}")
     print()
 
-    benchmark = Benchmark(config=config, num_games=num_games)
+    benchmark = Benchmark(config=config, num_games=num_games, storage_type=storage_type)
 
     # Run built-in bots for comparison
     print("Running built-in bots...")
@@ -62,7 +69,10 @@ def evaluate_agent(agent: BaseAgent, config: GameConfig, num_games: int) -> None
 
 
 def benchmark_builtin_bots(
-    config: GameConfig, num_games: int, verbose=True
+    config: GameConfig,
+    num_games: int,
+    verbose: bool = True,
+    storage_type: str = "pickle"
 ) -> dict[str, dict[str, float]]:
     """
     Benchmark all built-in bots to get baseline performance.
@@ -70,6 +80,8 @@ def benchmark_builtin_bots(
     Args:
         config: Game configuration to use
         num_games: Number of games to play
+        verbose: Whether to print detailed results
+        storage_type: Storage backend - "pickle" (default) or "database"
     """
     if verbose:
         print("Built-in Bots Benchmark")
@@ -78,9 +90,10 @@ def benchmark_builtin_bots(
             f"Config: {config.num_rows}x{config.num_cols}, {config.num_colors} colors"
         )
         print(f"Games: {num_games}")
+        print(f"Storage: {storage_type}")
         print()
 
-    benchmark = Benchmark(config=config, num_games=num_games)
+    benchmark = Benchmark(config=config, num_games=num_games, storage_type=storage_type)
 
     if verbose:
         print("Running built-in bots...")

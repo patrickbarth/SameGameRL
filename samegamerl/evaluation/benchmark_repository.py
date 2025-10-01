@@ -1,18 +1,17 @@
 """Repository for benchmark data persistence and validation."""
 
 import pickle
-from dataclasses import dataclass
 from pathlib import Path
 
 from samegamerl.evaluation.benchmark_data import (
-    GameSnapshot,
     BotPerformance,
     BenchmarkData,
 )
+from samegamerl.evaluation.benchmark_repository_interface import BenchmarkRepositoryInterface
 from samegamerl.game.game_config import GameConfig
 
 
-class BenchmarkRepository:
+class PickleBenchmarkRepository(BenchmarkRepositoryInterface):
     """Handles persistence and validation of benchmark data"""
 
     def __init__(self, benchmark_path: Path):
@@ -149,3 +148,7 @@ class BenchmarkRepository:
             )
         except AttributeError:
             return False
+
+
+# Backward compatibility alias
+BenchmarkRepository = PickleBenchmarkRepository
