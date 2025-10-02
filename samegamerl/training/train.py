@@ -2,7 +2,7 @@ from samegamerl.environments.samegame_env import SameGameEnv
 from samegamerl.agents.dqn_agent import DqnAgent
 from tqdm import tqdm
 
-from samegamerl.evaluation.visualize_agent import play_eval_game
+# from samegamerl.evaluation.visualize_agent import play_eval_game
 
 # NUM_COLS and NUM_ROWS are no longer used - dimensions come from environment config
 
@@ -10,12 +10,12 @@ from samegamerl.evaluation.visualize_agent import play_eval_game
 def train(
     agent: DqnAgent,
     env: SameGameEnv,
-    epochs: int=1000,
+    epochs: int = 1000,
     training_loops: int = 5,
     max_steps=None,  # If None, defaults to half of total cells
-    report_num: int=500,
-    visualize_num: int=10,
-    update_target_num: int=1000,
+    report_num: int = 500,
+    visualize_num: int = 10,
+    update_target_num: int = 1000,
     warmup_episodes: int | None = None,
 ):
 
@@ -36,7 +36,7 @@ def train(
             warmup_episodes = max(1, (agent.batch_size // max_steps) * 2)
         else:
             warmup_episodes = 0
-    
+
     for i in range(warmup_episodes):
         obs = env.reset()
 
@@ -89,8 +89,8 @@ def train(
             # total_reward = 0
             loss = 0
 
-        if episode % visualize_freq == visualize_freq - 1:
-            play_eval_game(agent, visualize=True, waiting_time=1000)
+        # if episode % visualize_freq == visualize_freq - 1:
+        #    play_eval_game(agent, visualize=True, waiting_time=1000)
 
         if episode % update_target_freq == 0:
             agent.update_target_model()
