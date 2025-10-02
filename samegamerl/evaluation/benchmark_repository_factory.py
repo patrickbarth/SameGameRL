@@ -3,9 +3,19 @@
 from pathlib import Path
 
 from samegamerl.evaluation.benchmark_repository import PickleBenchmarkRepository
-from samegamerl.evaluation.database_benchmark_repository import DatabaseBenchmarkRepository
 from samegamerl.evaluation.benchmark_repository_interface import BenchmarkRepositoryInterface
 from samegamerl.game.game_config import GameConfig
+
+# Try to import database support
+try:
+    from samegamerl.database.availability import DATABASE_AVAILABLE
+
+    if DATABASE_AVAILABLE:
+        from samegamerl.evaluation.database_benchmark_repository import (
+            DatabaseBenchmarkRepository,
+        )
+except ImportError:
+    DATABASE_AVAILABLE = False
 
 
 class BenchmarkRepositoryFactory:
@@ -38,6 +48,26 @@ class BenchmarkRepositoryFactory:
             return PickleBenchmarkRepository(benchmark_path)
 
         elif storage_type == "database":
+            if not DATABASE_AVAILABLE:
+                print(
+                    "Warning: Database dependencies not available. "
+                    "Falling back to pickle storage."
+                )
+                print(
+                    "Install database support with: poetry install -E database"
+                )
+                # Fall back to pickle - need to generate path
+                if benchmark_path is None:
+                    if config is None or base_seed is None:
+                        raise ValueError(
+                            "benchmark_path or (config + base_seed) required for fallback"
+                        )
+                    # Generate default path based on config
+                    benchmark_path = BenchmarkRepositoryFactory._generate_fallback_path(
+                        config, base_seed
+                    )
+                return PickleBenchmarkRepository(benchmark_path)
+
             if config is None:
                 raise ValueError("config is required for database storage")
             if base_seed is None:
@@ -52,4 +82,20 @@ class BenchmarkRepositoryFactory:
     @staticmethod
     def get_supported_types() -> list[str]:
         """Get list of supported storage types."""
-        return ["pickle", "database"]
+        types = ["pickle"]
+        if DATABASE_AVAILABLE:
+            types.append("database")
+        return types
+
+    @staticmethod
+    def is_database_available() -> bool:
+        """Check if database dependencies are available."""
+        return DATABASE_AVAILABLE
+
+    @staticmethod
+    def _generate_fallback_path(config: GameConfig, base_seed: int) -> Path:
+        """Generate default benchmark path for fallback storage."""
+        filename = f"benchmark_{config.num_rows}_{config.num_cols}_{config.num_colors}_{base_seed}.pkl"
+        # Use absolute path relative to this file's location
+        project_root = Path(__file__).parent.parent.parent
+        return project_root / "samegamerl" / "evaluation" / "benchmarks" / filename
