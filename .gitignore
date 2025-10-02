@@ -208,5 +208,10 @@ marimo/_lsp/
 __marimo__/
 
 # Streamlit
-.streamlit/secrets.toml.DS_Store
+.streamlit/secrets.toml
 .env
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
