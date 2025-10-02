@@ -196,9 +196,9 @@ class Benchmark:
             if save_results:
                 self.results[agent_name] = results
                 self.save()
-                print(f"Results saved for {agent_name}")
-            else:
-                print("Results computed but not saved (ephemeral evaluation)")
+                # print(f"Results saved for {agent_name}")
+            # else:
+            # print("Results computed but not saved (ephemeral evaluation)")
 
             return results
 
