@@ -13,6 +13,44 @@ from samegamerl.agents.base_agent import BaseAgent
 from samegamerl.evaluation.benchmark_data import BotPerformance
 
 
+def get_agent_performance(
+    agent: BaseAgent,
+    config: GameConfig,
+    num_games: int,
+    storage_type: str = "pickle",
+    verbose=False,
+) -> dict[str, float]:
+    """
+    Evaluate a custom agent with the benchmarking set and return the results.
+
+    Args:
+        agent: Custom agent instance to evaluate
+        config: Game configuration to use
+        num_games: Number of games to play
+    Returns:
+        dict{
+            metric: result}
+    """
+
+    benchmark = Benchmark(config=config, num_games=num_games, storage_type=storage_type)
+
+    results = {agent.model_name: benchmark.evaluate_agent(agent)}
+
+    stats = _compute_stats(results)[agent.model_name]
+
+    if verbose:
+        print("\nPerformance Results:")
+        print("-" * 30)
+
+        print(f"   Completion rate: {stats['completion_rate']:.1%}")
+        print(f"   Avg tiles cleared: {stats['avg_tiles_cleared']:.1f}")
+        print(f"   Avg moves made: {stats['avg_moves_made']:.1f}")
+        print(f"   Avg singles remaining: {stats['avg_singles_remaining']:.1f}")
+        print()
+
+    return stats
+
+
 def benchmark_agent(
     agent: BaseAgent, config: GameConfig, num_games: int, storage_type: str = "pickle"
 ) -> None:
