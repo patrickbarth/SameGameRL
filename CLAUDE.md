@@ -43,8 +43,22 @@ pytest samegamerl/tests/test_samegame_env.py  # Run specific test file
 ### Dependencies
 This project uses Poetry for dependency management:
 ```bash
-poetry add    # Install dependencies
-poetry shell      # Activate virtual environment
+poetry install              # Install core dependencies
+poetry install -E database  # Install with optional database support
+poetry shell               # Activate virtual environment
+```
+
+#### Optional Database Dependencies
+The project supports optional database storage for benchmarks. Install database dependencies with:
+```bash
+poetry install -E database
+```
+
+Without database dependencies, the system automatically falls back to pickle-based storage. This allows the repository to work on remote GPU machines where database packages may not be available.
+
+Check database availability:
+```bash
+poetry run python scripts/check_database_availability.py
 ```
 
 ### Running the Game
