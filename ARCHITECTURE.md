@@ -74,7 +74,7 @@ def get_observation(self) -> np.ndarray:
 
 **Alternative Considered**: Flattened integer board representation was rejected due to poor CNN performance and unclear color relationships.
 
-### 4. Sophisticated Reward Function
+### 4. Reward Function
 
 **Design Decision**: Multi-component reward function balancing progress and completion.
 
