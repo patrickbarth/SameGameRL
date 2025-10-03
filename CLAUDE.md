@@ -90,6 +90,11 @@ python samegamerl/main.py  # Launch interactive pygame interface
 **Training Pipeline** (`samegamerl/training/`)
 - `train.py`: Main training function with configurable epochs, reporting, and visualization
 - Supports epsilon decay, target network updates, and periodic evaluation
+- `checkpoint_data.py`: Typed dataclasses for checkpoint state (AgentCheckpointState, EnvCheckpointState, TrainingState, CheckpointData)
+- `checkpoint_state_extractor.py`: Adapter pattern for extracting state from agent/env without coupling
+- `checkpoint_service.py`: Coordinates checkpoint creation and loading
+- `pickle_checkpoint_repository.py`: File-based checkpoint storage (zero dependencies)
+- `training_manager.py`: High-level training interface with checkpoint support
 
 **Experiments** (`samegamerl/experiments/`)
 - Self-contained experiment scripts that define model architecture, hyperparameters, and training loops
@@ -112,6 +117,13 @@ python samegamerl/main.py  # Launch interactive pygame interface
 **Modular Architecture**: Clear separation between game logic, RL environment, agent implementations, and evaluation tools.
 
 **Model Persistence**: Trained models are saved to `samegamerl/models/` with `.pth` extension, including model state, optimizer state, and target model state.
+
+**Checkpoint System**: Comprehensive checkpoint tracking for resumable training:
+- **Typed State Dataclasses**: Type-safe state representation (AgentCheckpointState, EnvCheckpointState, TrainingState, CheckpointData)
+- **Adapter Pattern**: CheckpointStateExtractor decouples checkpoint system from domain classes
+- **Repository Pattern**: Abstracted storage backend (currently pickle-based, extensible to database)
+- **Service Decomposition**: Separate concerns (CheckpointService, TrainingOrchestrator, TrainingManager)
+- **Version Field**: Checkpoint format evolution without breaking compatibility
 
 ## Code Style Guidelines
 
@@ -151,7 +163,7 @@ from samegamerl.agents.dqn_agent import DqnAgent
 small_config = GameFactory.small()
 env = SameGameEnv(small_config)
 
-# Large game for complex scenarios  
+# Large game for complex scenarios
 large_config = GameFactory.large()
 env = SameGameEnv(large_config)
 
@@ -161,6 +173,60 @@ agent = DqnAgent(
     config=config,
     # ... other parameters
 )
+```
+
+**Training with Checkpoints:**
+```python
+from pathlib import Path
+from samegamerl.training.checkpoint_service import CheckpointService
+from samegamerl.training.pickle_checkpoint_repository import PickleCheckpointRepository
+from samegamerl.training.training_manager import TrainingManager
+
+# Set up checkpoint system
+checkpoint_dir = Path("checkpoints")
+model_dir = Path("samegamerl/models/checkpoints")
+
+repository = PickleCheckpointRepository(checkpoint_dir)
+checkpoint_service = CheckpointService(repository, model_dir)
+
+# Create training manager
+manager = TrainingManager(
+    agent=agent,
+    env=env,
+    experiment_name="my_experiment",
+    checkpoint_service=checkpoint_service
+)
+
+# Train with checkpoints every 1000 epochs
+loss_history = manager.train_with_checkpoints(
+    total_epochs=10000,
+    checkpoint_every=1000,
+    random_seed=42
+)
+
+# List all checkpoints for experiment
+checkpoints = repository.list_checkpoints(experiment_name="my_experiment")
+# ['my_experiment_epoch_1000', 'my_experiment_epoch_2000', ...]
+
+# Load a specific checkpoint
+checkpoint = checkpoint_service.load_checkpoint("my_experiment_epoch_5000")
+print(f"Epsilon at epoch 5000: {checkpoint.agent_state.epsilon}")
+print(f"Training progress: {checkpoint.training_state.current_epoch}/{checkpoint.training_state.total_epochs}")
+```
+
+**Training without Checkpoints:**
+```python
+from samegamerl.training.training_manager import TrainingManager
+
+# Create training manager without checkpoint service
+manager = TrainingManager(
+    agent=agent,
+    env=env,
+    experiment_name="quick_test"
+)
+
+# Train without checkpointing
+loss_history = manager.train(epochs=1000)
 ```
 - Use "pythonic" ways of solving problems.
 This project uses Python 3.13 or higher. Use features available in the newer versions of python when applicable
