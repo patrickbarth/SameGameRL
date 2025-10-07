@@ -15,11 +15,10 @@ from samegamerl.training.training_manager import TrainingManager
 
 
 @pytest.fixture
-def temp_dirs():
-    """Create temporary directories for checkpoints and models."""
+def temp_checkpoint_dir():
+    """Create temporary directory for checkpoints."""
     with tempfile.TemporaryDirectory() as checkpoint_dir:
-        with tempfile.TemporaryDirectory() as model_dir:
-            yield Path(checkpoint_dir), Path(model_dir)
+        yield Path(checkpoint_dir)
 
 
 @pytest.fixture
@@ -56,9 +55,8 @@ def agent_and_env():
 class TestTrainingManager:
     """Tests for training manager."""
 
-    def test_basic_training(self, temp_dirs, agent_and_env):
+    def test_basic_training(self, agent_and_env):
         """Test basic training without checkpointing."""
-        checkpoint_dir, model_dir = temp_dirs
         agent, env = agent_and_env
 
         manager = TrainingManager(agent, env, experiment_name="test_exp")
@@ -70,13 +68,12 @@ class TestTrainingManager:
         assert isinstance(loss_history, list)
         assert len(loss_history) > 0
 
-    def test_training_with_checkpoints(self, temp_dirs, agent_and_env):
+    def test_training_with_checkpoints(self, temp_checkpoint_dir, agent_and_env):
         """Test training with periodic checkpointing."""
-        checkpoint_dir, model_dir = temp_dirs
         agent, env = agent_and_env
 
-        repository = PickleCheckpointRepository(checkpoint_dir)
-        checkpoint_service = CheckpointService(repository, model_dir)
+        repository = PickleCheckpointRepository(temp_checkpoint_dir)
+        checkpoint_service = CheckpointService(repository)
 
         manager = TrainingManager(
             agent, env, experiment_name="test_exp", checkpoint_service=checkpoint_service
@@ -97,13 +94,12 @@ class TestTrainingManager:
         # Should return loss history
         assert len(loss_history) > 0
 
-    def test_checkpoint_captures_training_progress(self, temp_dirs, agent_and_env):
+    def test_checkpoint_captures_training_progress(self, temp_checkpoint_dir, agent_and_env):
         """Test that checkpoints capture training progress correctly."""
-        checkpoint_dir, model_dir = temp_dirs
         agent, env = agent_and_env
 
-        repository = PickleCheckpointRepository(checkpoint_dir)
-        checkpoint_service = CheckpointService(repository, model_dir)
+        repository = PickleCheckpointRepository(temp_checkpoint_dir)
+        checkpoint_service = CheckpointService(repository)
 
         manager = TrainingManager(
             agent, env, experiment_name="test_exp", checkpoint_service=checkpoint_service
@@ -122,9 +118,8 @@ class TestTrainingManager:
         assert checkpoint.training_state.total_epochs == 10
         assert checkpoint.training_state.random_seed == 42
 
-    def test_epsilon_decay_during_training(self, temp_dirs, agent_and_env):
+    def test_epsilon_decay_during_training(self, agent_and_env):
         """Test that epsilon decays during training."""
-        checkpoint_dir, model_dir = temp_dirs
         agent, env = agent_and_env
 
         initial_epsilon = agent.epsilon
@@ -137,13 +132,12 @@ class TestTrainingManager:
         # Epsilon should have decayed
         assert agent.epsilon < initial_epsilon
 
-    def test_multiple_checkpoint_intervals(self, temp_dirs, agent_and_env):
+    def test_multiple_checkpoint_intervals(self, temp_checkpoint_dir, agent_and_env):
         """Test training with different checkpoint intervals."""
-        checkpoint_dir, model_dir = temp_dirs
         agent, env = agent_and_env
 
-        repository = PickleCheckpointRepository(checkpoint_dir)
-        checkpoint_service = CheckpointService(repository, model_dir)
+        repository = PickleCheckpointRepository(temp_checkpoint_dir)
+        checkpoint_service = CheckpointService(repository)
 
         manager = TrainingManager(
             agent, env, experiment_name="test_exp", checkpoint_service=checkpoint_service

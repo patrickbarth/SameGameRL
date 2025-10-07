@@ -182,12 +182,10 @@ from samegamerl.training.checkpoint_service import CheckpointService
 from samegamerl.training.pickle_checkpoint_repository import PickleCheckpointRepository
 from samegamerl.training.training_manager import TrainingManager
 
-# Set up checkpoint system
+# Set up checkpoint system (all files stored in one directory)
 checkpoint_dir = Path("checkpoints")
-model_dir = Path("samegamerl/models/checkpoints")
-
 repository = PickleCheckpointRepository(checkpoint_dir)
-checkpoint_service = CheckpointService(repository, model_dir)
+checkpoint_service = CheckpointService(repository)
 
 # Create training manager
 manager = TrainingManager(

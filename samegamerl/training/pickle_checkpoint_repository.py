@@ -15,7 +15,16 @@ class PickleCheckpointRepository:
     """Repository for storing and retrieving checkpoints as pickle files.
 
     Each checkpoint is stored as a separate .pkl file named by its identifier
-    (format: {experiment_name}_epoch_{epoch}.pkl).
+    (format: {experiment_name}_epoch_{epoch}.pkl). Model weights are stored
+    alongside checkpoint metadata in the same directory.
+
+    Directory structure:
+        checkpoint_dir/
+            experiment_1_epoch_100.pkl      # Checkpoint metadata
+            experiment_1_epoch_100_model.pth  # Model weights
+            experiment_1_epoch_200.pkl
+            experiment_1_epoch_200_model.pth
+            ...
 
     This storage backend is lightweight, requires no external dependencies,
     and works reliably on remote GPU machines.
@@ -24,13 +33,25 @@ class PickleCheckpointRepository:
     def __init__(self, checkpoint_dir: Path | str):
         """Initialize repository with checkpoint directory.
 
-        Creates the directory if it doesn't exist.
+        Creates the directory if it doesn't exist. All checkpoint files
+        (metadata and model weights) are stored in this single directory.
 
         Args:
-            checkpoint_dir: Directory path for storing checkpoint files
+            checkpoint_dir: Directory path for storing all checkpoint files
         """
         self.checkpoint_dir = Path(checkpoint_dir)
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+    def get_model_path(self, checkpoint_id: str) -> Path:
+        """Get the path where model weights should be stored.
+
+        Args:
+            checkpoint_id: Checkpoint identifier
+
+        Returns:
+            Path for model weights file
+        """
+        return self.checkpoint_dir / f"{checkpoint_id}_model.pth"
 
     def save(self, checkpoint: CheckpointData) -> str:
         """Save checkpoint to pickle file.
@@ -84,7 +105,7 @@ class PickleCheckpointRepository:
         return checkpoint_file.exists()
 
     def delete(self, checkpoint_id: str) -> None:
-        """Delete checkpoint file.
+        """Delete checkpoint file and associated model weights.
 
         Args:
             checkpoint_id: Checkpoint identifier
@@ -98,6 +119,11 @@ class PickleCheckpointRepository:
             raise FileNotFoundError(f"Checkpoint not found: {checkpoint_id}")
 
         checkpoint_file.unlink()
+
+        # Also delete model weights if they exist
+        model_file = self.get_model_path(checkpoint_id)
+        if model_file.exists():
+            model_file.unlink()
 
     def list_checkpoints(self, experiment_name: str | None = None) -> list[str]:
         """List all checkpoint identifiers.

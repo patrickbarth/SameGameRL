@@ -79,7 +79,7 @@ def train(
         loss = (loss + cur_loss) / 2
 
         for i in range(training_loops):
-            cur_loss = agent.learn()
+            agent.learn()
 
         agent.decrease_epsilon()
 

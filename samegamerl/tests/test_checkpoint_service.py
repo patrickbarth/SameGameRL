@@ -14,11 +14,10 @@ from samegamerl.training.pickle_checkpoint_repository import PickleCheckpointRep
 
 
 @pytest.fixture
-def temp_dirs():
-    """Create temporary directories for checkpoints and models."""
+def temp_checkpoint_dir():
+    """Create temporary directory for checkpoints."""
     with tempfile.TemporaryDirectory() as checkpoint_dir:
-        with tempfile.TemporaryDirectory() as model_dir:
-            yield Path(checkpoint_dir), Path(model_dir)
+        yield Path(checkpoint_dir)
 
 
 @pytest.fixture
@@ -61,13 +60,12 @@ def agent_and_env():
 class TestCheckpointService:
     """Tests for checkpoint service."""
 
-    def test_create_checkpoint(self, temp_dirs, agent_and_env):
+    def test_create_checkpoint(self, temp_checkpoint_dir, agent_and_env):
         """Test creating a checkpoint."""
-        checkpoint_dir, model_dir = temp_dirs
         agent, env = agent_and_env
 
-        repository = PickleCheckpointRepository(checkpoint_dir)
-        service = CheckpointService(repository, model_dir)
+        repository = PickleCheckpointRepository(temp_checkpoint_dir)
+        service = CheckpointService(repository)
 
         checkpoint_id = service.create_checkpoint(
             agent=agent,
@@ -86,20 +84,19 @@ class TestCheckpointService:
         # Verify checkpoint was saved
         assert repository.exists(checkpoint_id)
 
-        # Verify model weights were saved
-        model_file = model_dir / "test_experiment_epoch_100_model.pth"
+        # Verify model weights were saved in same directory
+        model_file = repository.get_model_path(checkpoint_id)
         assert model_file.exists()
 
-    def test_load_checkpoint(self, temp_dirs, agent_and_env):
+    def test_load_checkpoint(self, temp_checkpoint_dir, agent_and_env):
         """Test loading a checkpoint."""
-        checkpoint_dir, model_dir = temp_dirs
         agent, env = agent_and_env
 
         # Modify agent state to simulate training
         agent.epsilon = 0.5
 
-        repository = PickleCheckpointRepository(checkpoint_dir)
-        service = CheckpointService(repository, model_dir)
+        repository = PickleCheckpointRepository(temp_checkpoint_dir)
+        service = CheckpointService(repository)
 
         # Create checkpoint
         checkpoint_id = service.create_checkpoint(
@@ -124,13 +121,12 @@ class TestCheckpointService:
         assert loaded_checkpoint.training_state.total_steps == 10000
         assert loaded_checkpoint.loss_history == [0.5, 0.4, 0.3]
 
-    def test_create_checkpoint_with_benchmark_results(self, temp_dirs, agent_and_env):
+    def test_create_checkpoint_with_benchmark_results(self, temp_checkpoint_dir, agent_and_env):
         """Test creating checkpoint with benchmark results."""
-        checkpoint_dir, model_dir = temp_dirs
         agent, env = agent_and_env
 
-        repository = PickleCheckpointRepository(checkpoint_dir)
-        service = CheckpointService(repository, model_dir)
+        repository = PickleCheckpointRepository(temp_checkpoint_dir)
+        service = CheckpointService(repository)
 
         benchmark_results = {
             "mean_score": 750.0,
@@ -154,13 +150,12 @@ class TestCheckpointService:
         loaded = service.load_checkpoint(checkpoint_id)
         assert loaded.benchmark_results == benchmark_results
 
-    def test_checkpoint_captures_current_agent_state(self, temp_dirs, agent_and_env):
+    def test_checkpoint_captures_current_agent_state(self, temp_checkpoint_dir, agent_and_env):
         """Test that checkpoint captures agent state at checkpoint time."""
-        checkpoint_dir, model_dir = temp_dirs
         agent, env = agent_and_env
 
-        repository = PickleCheckpointRepository(checkpoint_dir)
-        service = CheckpointService(repository, model_dir)
+        repository = PickleCheckpointRepository(temp_checkpoint_dir)
+        service = CheckpointService(repository)
 
         # Simulate epsilon decay during training
         agent.epsilon = 0.6
@@ -182,13 +177,12 @@ class TestCheckpointService:
         # Should capture decayed epsilon value
         assert loaded.agent_state.epsilon == 0.6
 
-    def test_checkpoint_captures_env_state(self, temp_dirs, agent_and_env):
+    def test_checkpoint_captures_env_state(self, temp_checkpoint_dir, agent_and_env):
         """Test that checkpoint captures environment configuration."""
-        checkpoint_dir, model_dir = temp_dirs
         agent, env = agent_and_env
 
-        repository = PickleCheckpointRepository(checkpoint_dir)
-        service = CheckpointService(repository, model_dir)
+        repository = PickleCheckpointRepository(temp_checkpoint_dir)
+        service = CheckpointService(repository)
 
         checkpoint_id = service.create_checkpoint(
             agent=agent,
@@ -209,13 +203,12 @@ class TestCheckpointService:
         assert loaded.env_state.game_config.num_rows == 5
         assert loaded.env_state.game_config.num_colors == 3
 
-    def test_multiple_checkpoints_for_same_experiment(self, temp_dirs, agent_and_env):
+    def test_multiple_checkpoints_for_same_experiment(self, temp_checkpoint_dir, agent_and_env):
         """Test creating multiple checkpoints for the same experiment."""
-        checkpoint_dir, model_dir = temp_dirs
         agent, env = agent_and_env
 
-        repository = PickleCheckpointRepository(checkpoint_dir)
-        service = CheckpointService(repository, model_dir)
+        repository = PickleCheckpointRepository(temp_checkpoint_dir)
+        service = CheckpointService(repository)
 
         # Create checkpoints at different epochs
         id_100 = service.create_checkpoint(

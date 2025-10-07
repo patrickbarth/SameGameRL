@@ -5,7 +5,6 @@ saving model weights, and persisting via repository.
 """
 
 from datetime import datetime
-from pathlib import Path
 
 from samegamerl.training.checkpoint_data import CheckpointData, TrainingState
 from samegamerl.training.checkpoint_state_extractor import CheckpointStateExtractor
@@ -17,18 +16,18 @@ class CheckpointService:
     Handles coordination between state extraction, model weight saving,
     and repository persistence. Keeps checkpoint creation logic separate
     from training orchestration.
+
+    Model weights are stored via the repository's get_model_path() method,
+    ensuring all checkpoint-related files are colocated.
     """
 
-    def __init__(self, repository, model_dir: Path | str):
+    def __init__(self, repository):
         """Initialize checkpoint service.
 
         Args:
-            repository: Checkpoint repository (pickle or database)
-            model_dir: Directory for storing model weight files
+            repository: Checkpoint repository (must have get_model_path() method)
         """
         self.repository = repository
-        self.model_dir = Path(model_dir)
-        self.model_dir.mkdir(parents=True, exist_ok=True)
         self.extractor = CheckpointStateExtractor()
 
     def create_checkpoint(
@@ -80,15 +79,20 @@ class CheckpointService:
             training_time_seconds=training_time_seconds,
         )
 
-        # Save model weights
-        # Agent.save() adds .pth extension and uses agent.models_dir
-        # We need to temporarily override models_dir to use our checkpoint directory
-        original_models_dir = agent.models_dir
-        agent.models_dir = self.model_dir
+        # Generate checkpoint ID to determine model path
+        checkpoint_id = f"{experiment_name}_epoch_{epoch}"
+        model_path = self.repository.get_model_path(checkpoint_id)
+        model_filename = model_path.name
 
-        model_name = f"{experiment_name}_epoch_{epoch}_model"
-        model_filename = f"{model_name}.pth"
-        agent.save(model_name)
+        # Save model weights via repository's path
+        # Agent.save() adds .pth extension and uses agent.models_dir
+        # Temporarily override to use repository's checkpoint directory
+        original_models_dir = agent.models_dir
+        agent.models_dir = model_path.parent
+
+        # Save with name (without .pth extension, agent.save adds it)
+        model_name_without_ext = model_path.stem
+        agent.save(model_name_without_ext)
 
         # Restore original models_dir
         agent.models_dir = original_models_dir
