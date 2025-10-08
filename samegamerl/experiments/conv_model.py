@@ -8,7 +8,7 @@ from samegamerl.evaluation.validator import validate
 from samegamerl.game.game_config import GameConfig, GameFactory
 
 from samegamerl.evaluation.visualize_agent import play_eval_game
-from samegamerl.training.train import train
+from samegamerl.training.training_manager import TrainingManager
 
 """
 Experiment meta info
@@ -100,9 +100,13 @@ agent.load(name="CNN_base_new_reward")
 """
 Training loop
 """
-results = train(
-    agent,
-    env,
+trainer = TrainingManager(
+    agent=agent,
+    env=env,
+    experiment_name=experiment_name,
+)
+
+results = trainer.train(
     epochs=n_games,
     max_steps=max_steps,
     report_num=report_num,

@@ -473,20 +473,20 @@ def run_complete_episode(env: SameGameEnv, agent: DqnAgent, max_steps: int = 100
     }
 
 
-def verify_training_integration(agent_builder: AgentTestBuilder, env_builder: EnvironmentTestBuilder, 
+def verify_training_integration(agent_builder: AgentTestBuilder, env_builder: EnvironmentTestBuilder,
                               epochs: int = 10) -> dict[str, float | int | list[float] | bool]:
     """Verify that agent and environment integrate correctly during training"""
-    from samegamerl.training.train import train
-    
+    from samegamerl.training.training_manager import TrainingManager
+
     agent = agent_builder.build()
     env = env_builder.build()
-    
+
     initial_epsilon = agent.epsilon
     initial_buffer_size = len(agent.replay_buffer)
-    
-    results = train(
-        agent=agent,
-        env=env,
+
+    manager = TrainingManager(agent=agent, env=env, experiment_name="test")
+
+    results = manager.train(
         epochs=epochs,
         max_steps=20,
         report_num=2,
