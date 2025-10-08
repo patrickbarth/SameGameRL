@@ -71,10 +71,7 @@ class TrainingManager:
 
                 if done:
                     break
-                if (
-                    step > steps_per_episode / 2
-                    and self.env.game.get_singles() == self.env.game.left
-                ):
+                if step > steps_per_episode / 2:
                     break
 
     def train(
