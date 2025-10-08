@@ -45,7 +45,7 @@ class TrainingManager:
         self.total_steps = 0
         self.cumulative_loss_history = []
 
-    def warmup(self, episodes: int, max_steps: int | None = None):
+    def warmup(self, episodes: int | None = None, max_steps: int | None = None):
         """Populate replay buffer with random play experiences.
 
         Runs episodes using epsilon-greedy exploration to fill the replay buffer
@@ -56,6 +56,12 @@ class TrainingManager:
             episodes: Number of warmup episodes to run
             max_steps: Maximum steps per episode (defaults to half of total cells)
         """
+        if episodes is None:
+            if max_steps and max_steps > 0:
+                episodes = max(1, (self.agent.batch_size // max_steps) * 2)
+            else:
+                episodes = 0
+
         steps_per_episode = (
             max_steps if max_steps is not None else self.env.config.total_cells // 2
         )
