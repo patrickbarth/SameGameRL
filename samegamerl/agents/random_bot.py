@@ -5,6 +5,7 @@ Selects random valid moves from available options, providing a baseline
 for evaluating other agents' performance.
 """
 
+import hashlib
 import random
 from samegamerl.agents.benchmark_bot_base import BenchmarkBotBase
 from samegamerl.agents.bot_utils import find_valid_moves
@@ -45,6 +46,8 @@ class RandomBot(BenchmarkBotBase):
         if not valid_moves:
             return None
 
-        self.rng.seed(hash(str(board)))
+        board_str = str(board).encode('utf-8')
+        stable_hash = int(hashlib.md5(board_str).hexdigest(), 16)
+        self.rng.seed(stable_hash)
 
         return self.rng.choice(valid_moves)
