@@ -123,6 +123,10 @@ class TrainingManager:
 
             self.agent.decrease_epsilon()
 
+            if episode % report_freq == report_freq - 1:
+                results.append(float(loss))
+                loss = 0
+
             # Commented out visualization - can be enabled if needed
             # if episode % visualize_freq == visualize_freq - 1:
             #     from samegamerl.evaluation.visualize_agent import play_eval_game

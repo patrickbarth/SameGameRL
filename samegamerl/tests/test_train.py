@@ -70,6 +70,9 @@ class MockEnvironment:
         self.game = Mock()
         self.game.get_singles.return_value = 0
         self.game.left = 10
+        # Add config for TrainingManager compatibility
+        self.config = Mock()
+        self.config.total_cells = 64  # Default for 8x8 board
         
     def reset(self):
         self.reset_calls += 1
@@ -235,50 +238,6 @@ class TestTrainFunction:
         # Updates happen at episodes: 0, 3, 6, 9, 12 = 5 total updates
         expected_updates = 5
         assert agent.target_updates == expected_updates
-    
-    @pytest.mark.skip(reason="Visualization is commented out in TrainingManager")
-    @patch('samegamerl.training.train.play_eval_game')
-    def test_train_visualization_calls(self, mock_play_eval):
-        agent = MockAgent()
-        env = MockEnvironment()
-        
-        epochs = 20
-        visualize_num = 4  # Should visualize 4 times
-        
-        train(
-            agent=agent,
-            env=env,
-            epochs=epochs,
-            max_steps=5,
-            report_num=1,
-            visualize_num=visualize_num,
-            update_target_num=30
-        )
-        
-        # Should call visualization function
-        assert mock_play_eval.call_count == visualize_num
-        
-        # Should call with correct parameters
-        mock_play_eval.assert_called_with(agent, visualize=True, waiting_time=1000)
-    
-    @pytest.mark.skip(reason="Visualization is commented out in TrainingManager")
-    def test_train_disable_visualization(self):
-        agent = MockAgent()
-        env = MockEnvironment()
-
-        with patch('samegamerl.training.train.play_eval_game') as mock_play_eval:
-            train(
-                agent=agent,
-                env=env,
-                epochs=10,
-                max_steps=5,
-                report_num=1,
-                visualize_num=0,  # Disabled
-                update_target_num=20
-            )
-            
-            # Should never call visualization
-            mock_play_eval.assert_not_called()
 
 
 class TestTrainWithRealComponents:
@@ -505,43 +464,6 @@ class TestTrainParameterValidation:
         
         assert isinstance(results, list)
         assert len(results) > 0
-    
-    @pytest.mark.skip(reason="Visualization is commented out in TrainingManager")
-    def test_train_frequency_calculations(self):
-        """Test that frequency calculations work correctly"""
-        agent = MockAgent()
-        env = MockEnvironment()
-
-        epochs = 12
-
-        # Test that frequencies are calculated correctly
-        with patch('samegamerl.training.train.play_eval_game') as mock_visualize:
-            train(
-                agent=agent,
-                env=env,
-                epochs=epochs,
-                max_steps=5,
-                report_num=3,  # Should report every 4 episodes
-                visualize_num=4,  # Should visualize every 3 episodes  
-                update_target_num=6  # Should update every 2 episodes
-            )
-            
-            # Check visualization calls
-            expected_viz_calls = 4  # epochs // (epochs // visualize_num)
-            assert mock_visualize.call_count == expected_viz_calls
-        
-        # Check results length
-        expected_reports = 3
-        results = train(
-            agent=agent,
-            env=env,
-            epochs=epochs,
-            max_steps=5,
-            report_num=expected_reports,
-            visualize_num=0,
-            update_target_num=20
-        )
-        assert len(results) == expected_reports
 
 
 class TestTrainProgressTracking:
@@ -608,33 +530,6 @@ class TestTrainProgressTracking:
 class TestTrainIntegration:
     """Test integration with other components"""
 
-    @pytest.mark.skip(reason="Visualization is commented out in TrainingManager")
-    @patch('samegamerl.training.train.play_eval_game')
-    def test_train_calls_evaluation_correctly(self, mock_eval):
-        agent = MockAgent()
-        env = MockEnvironment()
-        
-        train(
-            agent=agent,
-            env=env,
-            epochs=8,
-            max_steps=5,
-            report_num=1,
-            visualize_num=2,  # Should call twice
-            update_target_num=10
-        )
-        
-        # Should call evaluation with correct parameters
-        expected_calls = 2
-        assert mock_eval.call_count == expected_calls
-        
-        # Each call should have correct signature
-        for call_args in mock_eval.call_args_list:
-            args, kwargs = call_args
-            assert args[0] is agent
-            assert kwargs.get('visualize') is True
-            assert kwargs.get('waiting_time') == 1000
-    
     def test_train_model_mode_management(self):
         """Test that model training mode is properly managed"""
         agent = MockAgent()
