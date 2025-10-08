@@ -9,12 +9,19 @@ from samegamerl.environments.samegame_env import SameGameEnv
 from samegamerl.game.game_config import GameFactory
 
 
-def train(agent, env, **kwargs):
+def train(agent, env, warmup_episodes=None, **kwargs):
     """Wrapper function for backward compatibility with tests.
 
     Creates a TrainingManager and delegates to its train() method.
+    Handles warmup_episodes parameter by calling warmup() before train().
     """
     manager = TrainingManager(agent=agent, env=env, experiment_name="test")
+
+    # Handle warmup if specified
+    if warmup_episodes is not None and warmup_episodes > 0:
+        max_steps = kwargs.get('max_steps', 100)
+        manager.warmup(episodes=warmup_episodes, max_steps=max_steps)
+
     return manager.train(**kwargs)
 
 

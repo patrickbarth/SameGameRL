@@ -84,3 +84,14 @@ class CheckpointStateExtractor:
         # Update optimizer learning rate if it changed
         for param_group in agent.opt.param_groups:
             param_group["lr"] = state.learning_rate
+
+    def clear_replay_buffer(self, agent) -> None:
+        """Clear all experiences from replay buffer.
+
+        Used during checkpoint rollback to empty the buffer, allowing
+        experiment to re-populate it with warmup from the restored model state.
+
+        Args:
+            agent: DqnAgent instance whose buffer should be cleared
+        """
+        agent.replay_buffer.buffer.clear()
