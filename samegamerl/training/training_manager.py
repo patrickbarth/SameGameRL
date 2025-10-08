@@ -42,7 +42,7 @@ class TrainingManager:
         self,
         epochs: int,
         training_loops: int = 5,
-        max_steps: int | None = None,
+        max_steps: int = 100,
         report_num: int = 500,
         visualize_num: int = 10,
         update_target_num: int = 1000,
@@ -91,7 +91,10 @@ class TrainingManager:
 
                 if done:
                     break
-                if step > max_steps / 2 and self.env.game.get_singles() == self.env.game.left:
+                if (
+                    step > max_steps / 2
+                    and self.env.game.get_singles() == self.env.game.left
+                ):
                     break
 
         total_reward = 0
@@ -111,8 +114,6 @@ class TrainingManager:
 
                 if done:
                     break
-                if step > max_steps / 2 and self.env.game.get_singles() == self.env.game.left:
-                    break
 
             cur_loss = self.agent.learn()
             loss = (loss + cur_loss) / 2
@@ -121,10 +122,6 @@ class TrainingManager:
                 self.agent.learn()
 
             self.agent.decrease_epsilon()
-
-            if episode % report_freq == report_freq - 1:
-                results.append(float(loss))
-                loss = 0
 
             # Commented out visualization - can be enabled if needed
             # if episode % visualize_freq == visualize_freq - 1:

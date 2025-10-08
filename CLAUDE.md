@@ -122,8 +122,10 @@ python samegamerl/main.py  # Launch interactive pygame interface
 - **Typed State Dataclasses**: Type-safe state representation (AgentCheckpointState, EnvCheckpointState, TrainingState, CheckpointData)
 - **Adapter Pattern**: CheckpointStateExtractor decouples checkpoint system from domain classes
 - **Repository Pattern**: Abstracted storage backend (currently pickle-based, extensible to database)
-- **Service Decomposition**: Separate concerns (CheckpointService, TrainingOrchestrator, TrainingManager)
+- **Service Decomposition**: Separate concerns (CheckpointService, TrainingManager)
 - **Version Field**: Checkpoint format evolution without breaking compatibility
+
+**Object-Oriented Training**: Training logic is encapsulated in TrainingManager class rather than standalone functions, providing better state management and cleaner API for both basic training and checkpoint-enabled workflows.
 
 ## Code Style Guidelines
 
