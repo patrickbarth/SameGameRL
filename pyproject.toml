@@ -1,25 +1,21 @@
 [project]
 name = "samegamerl"
 version = "0.1.0"
-description = ""
+description = "Training a RL agent on the popular SameGame"
 authors = [
     {name = "patrickbarth",email = "20340112+patrickbarth@users.noreply.github.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "pygame (>=2.6.1,<3.0.0)",
     "numpy (>=2.3.1,<3.0.0)",
     "torch (>=2.7.1,<3.0.0)",
     "pytest (>=8.4.1,<9.0.0)",
-    "matplotlib (>=3.10.3,<4.0.0)",
     "tqdm (>=4.67.1,<5.0.0)",
-    "psutil (>=7.0.0,<8.0.0)",
-    "seaborn (>=0.13.2,<0.14.0)",
-    "ray (>=2.49.1,<3.0.0)"
+    "psutil (>=7.0.0,<8.0.0)"
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 database = [
     "asyncpg (>=0.30.0,<0.31.0)",
     "sqlalchemy (>=2.0.43,<3.0.0)",
@@ -27,7 +23,14 @@ database = [
     "psycopg2-binary (>=2.9.10,<3.0.0)",
     "python-dotenv (>=1.1.1,<2.0.0)"
 ]
-
+graphics = [
+    "pygame (>=2.6.1,<3.0.0)",
+    "matplotlib (>=3.10.3,<4.0.0)",
+    "seaborn (>=0.13.2,<0.14.0)"
+]
+parallelization = [
+    "ray (>=2.49.1,<3.0.0)"
+]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
@@ -41,7 +44,10 @@ addopts = [
 [tool.poetry]
 name = "samegamerl"
 packages = [{ include = "samegamerl" }]
+package-mode = false
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.30.1"
 
+[tool.poetry.requires-plugins]
+poetry-plugin-export = ">=1.8"
